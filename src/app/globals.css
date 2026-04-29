@@ -1,0 +1,166 @@
+@import "tailwindcss";
+
+@theme {
+  /* Sun-faded retro summer palette */
+  --color-cream: #f7ecd2;
+  --color-cream-50: #fbf6e8;
+  --color-cream-100: #f7ecd2;
+  --color-cream-200: #efddb1;
+  --color-mustard: #e8a838;
+  --color-terracotta: #d2502d;
+  --color-terracotta-dark: #a83a1c;
+  --color-teal: #2f7e7a;
+  --color-teal-dark: #1c5450;
+  --color-plum: #6b3464;
+  --color-ink: #1a1410;
+
+  --font-display: "Bowlby One", "Arial Black", system-ui, sans-serif;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+
+  --radius-card: 1.25rem;
+}
+
+:root {
+  color-scheme: light;
+}
+
+html, body {
+  background: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  background-image:
+    radial-gradient(circle at 20% 0%, rgba(232, 168, 56, 0.18), transparent 45%),
+    radial-gradient(circle at 80% 10%, rgba(210, 80, 45, 0.14), transparent 50%),
+    radial-gradient(circle at 50% 100%, rgba(47, 126, 122, 0.12), transparent 55%);
+  min-height: 100dvh;
+}
+
+/* Sun-rays SVG used in the hero */
+.sunburst {
+  background-image: conic-gradient(
+    from 0deg,
+    var(--color-mustard) 0deg 12deg,
+    transparent 12deg 24deg,
+    var(--color-mustard) 24deg 36deg,
+    transparent 36deg 48deg,
+    var(--color-mustard) 48deg 60deg,
+    transparent 60deg 72deg,
+    var(--color-mustard) 72deg 84deg,
+    transparent 84deg 96deg,
+    var(--color-mustard) 96deg 108deg,
+    transparent 108deg 120deg,
+    var(--color-mustard) 120deg 132deg,
+    transparent 132deg 144deg,
+    var(--color-mustard) 144deg 156deg,
+    transparent 156deg 168deg,
+    var(--color-mustard) 168deg 180deg,
+    transparent 180deg 192deg,
+    var(--color-mustard) 192deg 204deg,
+    transparent 204deg 216deg,
+    var(--color-mustard) 216deg 228deg,
+    transparent 228deg 240deg,
+    var(--color-mustard) 240deg 252deg,
+    transparent 252deg 264deg,
+    var(--color-mustard) 264deg 276deg,
+    transparent 276deg 288deg,
+    var(--color-mustard) 288deg 300deg,
+    transparent 300deg 312deg,
+    var(--color-mustard) 312deg 324deg,
+    transparent 324deg 336deg,
+    var(--color-mustard) 336deg 348deg,
+    transparent 348deg 360deg
+  );
+}
+
+/* Subtle paper-grain texture */
+.grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.04 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  mix-blend-mode: multiply;
+  opacity: 0.5;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.5rem;
+  border-radius: 9999px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border: 2px solid var(--color-ink);
+  box-shadow: 4px 4px 0 var(--color-ink);
+  transition: transform 80ms ease, box-shadow 80ms ease;
+}
+
+.btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 var(--color-ink);
+}
+
+.btn-primary {
+  background: var(--color-terracotta);
+  color: var(--color-cream-50);
+}
+.btn-secondary {
+  background: var(--color-cream-50);
+  color: var(--color-ink);
+}
+.btn-tertiary {
+  background: var(--color-teal);
+  color: var(--color-cream-50);
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--color-cream-50);
+  border: 2px solid var(--color-ink);
+  color: var(--color-ink);
+}
+
+.card {
+  background: var(--color-cream-50);
+  border: 2px solid var(--color-ink);
+  border-radius: var(--radius-card);
+  box-shadow: 6px 6px 0 var(--color-ink);
+}
+
+.input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  border: 2px solid var(--color-ink);
+  background: var(--color-cream-50);
+  font-size: 1rem;
+  font-family: inherit;
+}
+.input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-mustard);
+}
+.label {
+  display: block;
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-ink);
+  margin-bottom: 0.4rem;
+}

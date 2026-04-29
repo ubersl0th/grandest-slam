@@ -1,0 +1,262 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { AppShell } from "@/components/app-shell";
+import { getSessionUser } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
+import type { Profile } from "@/lib/database.types";
+import { SPORTS, sportEmoji, sportLabel } from "@/lib/sports";
+
+export const metadata = { title: "My team · The Grandest Slam" };
+export const revalidate = 0;
+
+export default async function DashboardPage() {
+  const user = await getSessionUser();
+  if (!user) redirect("/auth/sign-in?next=/dashboard");
+
+  const supabase = await createClient();
+
+  const team = user.team;
+  if (!team) {
+    return (
+      <AppShell user={user} active="dashboard">
+        <div className="mx-auto max-w-2xl px-5 py-10">
+          <h1
+            className="text-3xl"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
+            No team yet
+          </h1>
+          <p className="mt-2 text-[var(--color-ink)]/75">
+            You&apos;re signed in but not attached to a team. Ask an admin to
+            help, or sign up via the team signup form.
+          </p>
+          <Link href="/join" className="btn btn-primary mt-6">
+            Sign up a team
+          </Link>
+        </div>
+      </AppShell>
+    );
+  }
+
+  // Pending matches (where this team is participating).
+  const { data: pendingMatches } = await supabase
+    .from("matches")
+    .select("*, ta:team_a(name), tb:team_b(name)")
+    .eq("status", "pending")
+    .or(`team_a.eq.${team.id},team_b.eq.${team.id}`);
+
+  const { data: pendingFlights } = await supabase
+    .from("flights")
+    .select("*, t1:team_1(name), t2:team_2(name)")
+    .eq("status", "pending")
+    .or(`team_1.eq.${team.id},team_2.eq.${team.id}`);
+
+  // Upcoming (no submission yet)
+  const { data: upcomingMatches } = await supabase
+    .from("matches")
+    .select("*, ta:team_a(name), tb:team_b(name)")
+    .is("status", null)
+    .or(`team_a.eq.${team.id},team_b.eq.${team.id}`)
+    .limit(20);
+
+  const { data: upcomingFlights } = await supabase
+    .from("flights")
+    .select("*, t1:team_1(name), t2:team_2(name)")
+    .is("status", null)
+    .or(`team_1.eq.${team.id},team_2.eq.${team.id}`)
+    .order("round_number")
+    .limit(20);
+
+  return (
+    <AppShell user={user} active="dashboard">
+      <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
+        <p className="text-xs font-bold uppercase tracking-widest text-[var(--color-ink)]/60">
+          Welcome
+        </p>
+        <h1
+          className="mt-1 text-3xl md:text-5xl"
+          style={{ fontFamily: "var(--font-display)" }}
+        >
+          {user.profile?.full_name?.split(" ")[0] ?? "Player"}
+        </h1>
+        <p className="mt-2 text-[var(--color-ink)]/75">
+          Team: <Link href={`/teams/${team.id}`} className="font-bold underline">{team.name}</Link>
+        </p>
+
+        {/* Action: confirm pending */}
+        <Section title="Awaiting your confirmation">
+          {([
+            ...((pendingMatches ?? []) as PendingMatch[])
+              .filter((m) => m.submitted_by && !isOurSubmission(m, user.profile))
+              .map((m) => ({ kind: "match" as const, m })),
+            ...((pendingFlights ?? []) as PendingFlight[])
+              .filter((f) => f.submitted_by && !isOurFlightSubmission(f, user.profile))
+              .map((f) => ({ kind: "flight" as const, f })),
+          ]).length === 0 && <Empty>You&apos;re all caught up.</Empty>}
+          {((pendingMatches ?? []) as PendingMatch[])
+            .filter((m) => m.submitted_by && !isOurSubmission(m, user.profile))
+            .map((m) => (
+              <Link
+                key={m.id}
+                href={`/matches/${m.id}`}
+                className="card flex items-center justify-between p-4 hover:translate-y-[-1px] transition-transform"
+              >
+                <div className="min-w-0">
+                  <p className="text-xs font-bold uppercase tracking-wider text-[var(--color-ink)]/60">
+                    {sportEmoji(m.sport)} {sportLabel(m.sport)}
+                  </p>
+                  <p className="mt-1 truncate font-extrabold">
+                    {extractName(m.ta)} {m.score_a}–{m.score_b} {extractName(m.tb)}
+                  </p>
+                  <p className="text-xs text-[var(--color-ink)]/60">Tap to confirm or dispute</p>
+                </div>
+                <span className="rounded-full border-2 border-[var(--color-ink)] bg-[var(--color-mustard)] px-3 py-1 text-xs font-black">
+                  Confirm →
+                </span>
+              </Link>
+            ))}
+          {((pendingFlights ?? []) as PendingFlight[])
+            .filter((f) => f.submitted_by && !isOurFlightSubmission(f, user.profile))
+            .map((f) => (
+              <Link
+                key={f.id}
+                href={`/matches/flight/${f.id}`}
+                className="card flex items-center justify-between p-4 hover:translate-y-[-1px] transition-transform"
+              >
+                <div className="min-w-0">
+                  <p className="text-xs font-bold uppercase tracking-wider text-[var(--color-ink)]/60">
+                    {sportEmoji(f.sport)} {sportLabel(f.sport)} · R{f.round_number}
+                  </p>
+                  <p className="mt-1 truncate font-extrabold">
+                    {extractName(f.t1)} {f.strokes_1}–{f.strokes_2} {extractName(f.t2)}
+                  </p>
+                  <p className="text-xs text-[var(--color-ink)]/60">Tap to confirm or dispute</p>
+                </div>
+                <span className="rounded-full border-2 border-[var(--color-ink)] bg-[var(--color-mustard)] px-3 py-1 text-xs font-black">
+                  Confirm →
+                </span>
+              </Link>
+            ))}
+        </Section>
+
+        <Section title="To submit">
+          {((upcomingMatches ?? []).length === 0 && (upcomingFlights ?? []).length === 0) && (
+            <Empty>Nothing scheduled yet — wait for the admin to start the tournament.</Empty>
+          )}
+          {((upcomingMatches ?? []) as PendingMatch[]).map((m) => (
+            <Link
+              key={m.id}
+              href={`/matches/${m.id}`}
+              className="card flex items-center justify-between p-4"
+            >
+              <div className="min-w-0">
+                <p className="text-xs font-bold uppercase tracking-wider text-[var(--color-ink)]/60">
+                  {sportEmoji(m.sport)} {sportLabel(m.sport)}
+                </p>
+                <p className="mt-1 truncate font-extrabold">
+                  {extractName(m.ta)} <span className="opacity-50">vs</span> {extractName(m.tb)}
+                </p>
+              </div>
+              <span className="rounded-full border-2 border-[var(--color-ink)] bg-[var(--color-cream-50)] px-3 py-1 text-xs font-black">
+                Submit →
+              </span>
+            </Link>
+          ))}
+          {((upcomingFlights ?? []) as PendingFlight[]).map((f) => (
+            <Link
+              key={f.id}
+              href={`/matches/flight/${f.id}`}
+              className="card flex items-center justify-between p-4"
+            >
+              <div className="min-w-0">
+                <p className="text-xs font-bold uppercase tracking-wider text-[var(--color-ink)]/60">
+                  {sportEmoji(f.sport)} {sportLabel(f.sport)} · R{f.round_number}
+                </p>
+                <p className="mt-1 truncate font-extrabold">
+                  {extractName(f.t1)} <span className="opacity-50">vs</span> {extractName(f.t2)}
+                </p>
+              </div>
+              <span className="rounded-full border-2 border-[var(--color-ink)] bg-[var(--color-cream-50)] px-3 py-1 text-xs font-black">
+                Submit →
+              </span>
+            </Link>
+          ))}
+        </Section>
+
+        <Section title="Your sports">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {SPORTS.map((s) => (
+              <Link
+                key={s.key}
+                href={`/leaderboard`}
+                className="card flex flex-col items-center justify-center p-4 text-center"
+              >
+                <div className="text-3xl">{s.emoji}</div>
+                <p className="mt-2 text-sm font-extrabold">{s.label}</p>
+              </Link>
+            ))}
+          </div>
+        </Section>
+      </div>
+    </AppShell>
+  );
+}
+
+type PendingMatch = {
+  id: string;
+  sport: "padel" | "tennis";
+  team_a: string;
+  team_b: string;
+  score_a: number | null;
+  score_b: number | null;
+  status: "pending" | "confirmed" | "disputed" | null;
+  submitted_by: string | null;
+  ta: { name: string } | { name: string }[] | null;
+  tb: { name: string } | { name: string }[] | null;
+};
+type PendingFlight = {
+  id: string;
+  sport: "disc_golf" | "golf";
+  round_number: number;
+  team_1: string;
+  team_2: string;
+  strokes_1: number | null;
+  strokes_2: number | null;
+  status: "pending" | "confirmed" | "disputed" | null;
+  submitted_by: string | null;
+  t1: { name: string } | { name: string }[] | null;
+  t2: { name: string } | { name: string }[] | null;
+};
+
+function extractName(rel: { name: string } | { name: string }[] | null): string {
+  if (!rel) return "?";
+  if (Array.isArray(rel)) return rel[0]?.name ?? "?";
+  return rel.name;
+}
+
+function isOurSubmission(m: PendingMatch, profile: Profile | null) {
+  return profile?.id === m.submitted_by;
+}
+function isOurFlightSubmission(f: PendingFlight, profile: Profile | null) {
+  return profile?.id === f.submitted_by;
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="mt-8">
+      <h2
+        className="mb-3 text-xl"
+        style={{ fontFamily: "var(--font-display)" }}
+      >
+        {title}
+      </h2>
+      <div className="space-y-2">{children}</div>
+    </section>
+  );
+}
+
+function Empty({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="card p-4 text-sm text-[var(--color-ink)]/60">{children}</div>
+  );
+}
