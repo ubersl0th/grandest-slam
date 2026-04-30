@@ -59,12 +59,13 @@ Copy `.env.example` to `.env.local` and fill in:
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
-SUPABASE_SERVICE_ROLE_KEY=<service role key>
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+SUPABASE_SECRET_KEY=sb_secret_...
 ```
 
-The service role key is **server-only** and used by `/api/signup` to create both player accounts in
-one shot. Never expose it to the browser.
+These are the new Supabase API keys (replacing the legacy anon / service_role JWTs). Find them in
+your project dashboard under **Settings → API Keys**. The secret key is **server-only** and used by
+the team-approval route to send magic-link invites. Never expose it to the browser.
 
 ### 4. Configure Supabase Auth
 
