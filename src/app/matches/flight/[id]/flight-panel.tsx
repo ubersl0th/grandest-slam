@@ -24,7 +24,7 @@ type Props = {
     isParticipant: boolean;
     isAdmin: boolean;
     myTeamId: string | null;
-    isOwnSubmission: boolean;
+    submittedByMyTeam: boolean;
   };
 };
 
@@ -39,7 +39,7 @@ export function FlightPanel({ flight, viewer }: Props) {
   const supabase = createClient();
   const canEdit = (viewer.isParticipant || viewer.isAdmin) && flight.status !== "confirmed";
   const showConfirm =
-    flight.status === "pending" && (viewer.isAdmin || (viewer.isParticipant && !viewer.isOwnSubmission));
+    flight.status === "pending" && (viewer.isAdmin || (viewer.isParticipant && !viewer.submittedByMyTeam));
 
   async function submit() {
     if (s1 === "" || s2 === "") {
@@ -129,7 +129,7 @@ export function FlightPanel({ flight, viewer }: Props) {
               {busy ? "Submitting…" : "Submit strokes"}
             </button>
           )}
-          {canEdit && flight.status === "pending" && viewer.isOwnSubmission && (
+          {canEdit && flight.status === "pending" && viewer.submittedByMyTeam && (
             <button onClick={submit} disabled={busy} className="btn btn-secondary flex-1 disabled:opacity-50">
               {busy ? "Updating…" : "Update strokes"}
             </button>
@@ -181,7 +181,7 @@ function StatusBanner({ flight, viewer }: Props) {
     );
   }
   if (flight.status === "pending") {
-    if (viewer.isOwnSubmission) {
+    if (viewer.submittedByMyTeam) {
       return (
         <div className="card border-[var(--color-mustard)] bg-[var(--color-mustard)]/20 p-4">
           <p className="text-sm font-bold">⏳ Waiting for the other team to confirm.</p>

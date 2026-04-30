@@ -44,6 +44,7 @@ export type Match = {
   score_b: number | null;
   notes: string | null;
   submitted_by: string | null;
+  submitted_by_team: string | null;
   submitted_at: string | null;
   confirmed_by: string | null;
   confirmed_at: string | null;
@@ -62,6 +63,7 @@ export type Flight = {
   strokes_2: number | null;
   notes: string | null;
   submitted_by: string | null;
+  submitted_by_team: string | null;
   submitted_at: string | null;
   confirmed_by: string | null;
   confirmed_at: string | null;

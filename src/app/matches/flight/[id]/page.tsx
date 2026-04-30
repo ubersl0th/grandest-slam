@@ -71,7 +71,7 @@ export default async function FlightDetailPage({
             isParticipant,
             isAdmin,
             myTeamId,
-            isOwnSubmission: f.submitted_by === user.profile?.id,
+            submittedByMyTeam: f.submitted_by_team !== null && f.submitted_by_team === myTeamId,
           }}
         />
       </div>
@@ -89,6 +89,7 @@ type FlightRow = {
   strokes_2: number | null;
   status: "pending" | "confirmed" | "disputed" | null;
   submitted_by: string | null;
+  submitted_by_team: string | null;
   t1: { id: string; name: string } | { id: string; name: string }[] | null;
   t2: { id: string; name: string } | { id: string; name: string }[] | null;
   submitter: { full_name: string } | { full_name: string }[] | null;

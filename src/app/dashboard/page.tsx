@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import type { Profile } from "@/lib/database.types";
 import { SPORTS, sportEmoji, sportLabel } from "@/lib/sports";
 
 export const metadata = { title: "My team · The Grandest Slam" };
@@ -87,14 +86,14 @@ export default async function DashboardPage() {
         <Section title="Awaiting your confirmation">
           {([
             ...((pendingMatches ?? []) as PendingMatch[])
-              .filter((m) => m.submitted_by && !isOurSubmission(m, user.profile))
+              .filter((m) => needsOpponentConfirmation(m, team.id))
               .map((m) => ({ kind: "match" as const, m })),
             ...((pendingFlights ?? []) as PendingFlight[])
-              .filter((f) => f.submitted_by && !isOurFlightSubmission(f, user.profile))
+              .filter((f) => needsOpponentConfirmationFlight(f, team.id))
               .map((f) => ({ kind: "flight" as const, f })),
           ]).length === 0 && <Empty>You&apos;re all caught up.</Empty>}
           {((pendingMatches ?? []) as PendingMatch[])
-            .filter((m) => m.submitted_by && !isOurSubmission(m, user.profile))
+            .filter((m) => needsOpponentConfirmation(m, team.id))
             .map((m) => (
               <Link
                 key={m.id}
@@ -116,7 +115,7 @@ export default async function DashboardPage() {
               </Link>
             ))}
           {((pendingFlights ?? []) as PendingFlight[])
-            .filter((f) => f.submitted_by && !isOurFlightSubmission(f, user.profile))
+            .filter((f) => needsOpponentConfirmationFlight(f, team.id))
             .map((f) => (
               <Link
                 key={f.id}
@@ -211,6 +210,7 @@ type PendingMatch = {
   score_b: number | null;
   status: "pending" | "confirmed" | "disputed" | null;
   submitted_by: string | null;
+  submitted_by_team: string | null;
   ta: { name: string } | { name: string }[] | null;
   tb: { name: string } | { name: string }[] | null;
 };
@@ -224,6 +224,7 @@ type PendingFlight = {
   strokes_2: number | null;
   status: "pending" | "confirmed" | "disputed" | null;
   submitted_by: string | null;
+  submitted_by_team: string | null;
   t1: { name: string } | { name: string }[] | null;
   t2: { name: string } | { name: string }[] | null;
 };
@@ -234,11 +235,18 @@ function extractName(rel: { name: string } | { name: string }[] | null): string 
   return rel.name;
 }
 
-function isOurSubmission(m: PendingMatch, profile: Profile | null) {
-  return profile?.id === m.submitted_by;
+// Pending result needs MY team to confirm only when the OPPOSING team submitted.
+function needsOpponentConfirmation(m: PendingMatch, myTeamId: string) {
+  return Boolean(
+    m.submitted_by_team && m.submitted_by_team !== myTeamId &&
+      (m.team_a === myTeamId || m.team_b === myTeamId),
+  );
 }
-function isOurFlightSubmission(f: PendingFlight, profile: Profile | null) {
-  return profile?.id === f.submitted_by;
+function needsOpponentConfirmationFlight(f: PendingFlight, myTeamId: string) {
+  return Boolean(
+    f.submitted_by_team && f.submitted_by_team !== myTeamId &&
+      (f.team_1 === myTeamId || f.team_2 === myTeamId),
+  );
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {

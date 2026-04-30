@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { isAdminRole } from "@/lib/auth";
 import type { Profile, Team } from "@/lib/database.types";
 
 type Props = {
@@ -8,6 +9,7 @@ type Props = {
 };
 
 export function AppShell({ user, children, active }: Props) {
+  const showAdmin = isAdminRole(user?.profile?.role);
   return (
     <div className="min-h-dvh pb-24 md:pb-10">
       <header className="sticky top-0 z-40 border-b-2 border-[var(--color-ink)] bg-[var(--color-cream)]/95 backdrop-blur">
@@ -35,7 +37,7 @@ export function AppShell({ user, children, active }: Props) {
                 My team
               </NavLink>
             )}
-            {user?.profile?.role !== "player" && user?.profile && (
+            {showAdmin && (
               <NavLink href="/admin" active={active === "admin"}>
                 Admin
               </NavLink>
@@ -67,7 +69,7 @@ export function AppShell({ user, children, active }: Props) {
         <BottomNavLink href="/leaderboard" active={active === "leaderboard"} icon="🏆" label="Board" />
         <BottomNavLink href="/matches" active={active === "matches"} icon="🎾" label="Matches" />
         <BottomNavLink href="/dashboard" active={active === "dashboard"} icon="👥" label="Team" />
-        {user?.profile?.role !== "player" && user?.profile ? (
+        {showAdmin ? (
           <BottomNavLink href="/admin" active={active === "admin"} icon="⚙️" label="Admin" />
         ) : (
           <BottomNavLink href="/" active={false} icon="🏠" label="Home" />

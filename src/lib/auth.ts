@@ -1,11 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
-import type { Profile, Team } from "@/lib/database.types";
+import type { Profile, Team, UserRole } from "@/lib/database.types";
 
 export type SessionUser = {
   id: string;
   profile: Profile | null;
   team: Team | null;
 };
+
+export function isAdminRole(role: UserRole | null | undefined): boolean {
+  return role === "admin" || role === "super_admin";
+}
 
 export async function getSessionUser(): Promise<SessionUser | null> {
   const supabase = await createClient();
@@ -41,8 +45,6 @@ export async function getSessionUser(): Promise<SessionUser | null> {
 export async function requireAdmin() {
   const user = await getSessionUser();
   if (!user?.profile) return null;
-  if (user.profile.role !== "admin" && user.profile.role !== "super_admin") {
-    return null;
-  }
+  if (!isAdminRole(user.profile.role)) return null;
   return user;
 }

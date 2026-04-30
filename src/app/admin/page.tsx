@@ -1,16 +1,16 @@
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
-import { getSessionUser, requireAdmin } from "@/lib/auth";
+import { getSessionUser, isAdminRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AdminConsole } from "./admin-console";
 
 export const metadata = { title: "Admin · The Grandest Slam" };
-export const revalidate = 0;
+export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
   const user = await getSessionUser();
   if (!user) redirect("/auth/sign-in?next=/admin");
-  if (!(await requireAdmin())) redirect("/dashboard");
+  if (!isAdminRole(user.profile?.role)) redirect("/dashboard");
 
   const supabase = await createClient();
 

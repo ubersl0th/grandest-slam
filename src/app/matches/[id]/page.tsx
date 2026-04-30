@@ -72,7 +72,7 @@ export default async function MatchDetailPage({
             isParticipant,
             isAdmin,
             myTeamId,
-            isOwnSubmission: m.submitted_by === user.profile?.id,
+            submittedByMyTeam: m.submitted_by_team !== null && m.submitted_by_team === myTeamId,
           }}
         />
       </div>
@@ -90,6 +90,7 @@ type MatchRow = {
   winner_team_id: string | null;
   status: "pending" | "confirmed" | "disputed" | null;
   submitted_by: string | null;
+  submitted_by_team: string | null;
   ta: { id: string; name: string } | { id: string; name: string }[] | null;
   tb: { id: string; name: string } | { id: string; name: string }[] | null;
   submitter: { full_name: string } | { full_name: string }[] | null;
