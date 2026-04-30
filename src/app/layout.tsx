@@ -5,6 +5,11 @@ export const metadata: Metadata = {
   title: "The Grandest Slam",
   description:
     "A four-sport summer tournament — Padel, Tennis, Disc Golf and Golf. Teams of two, one champion.",
+  icons: {
+    icon: "/The_Grandest_Slam.ico",
+    shortcut: "/The_Grandest_Slam.ico",
+    apple: "/The_Grandest_Slam.png",
+  },
 };
 
 export const viewport: Viewport = {

@@ -7,13 +7,15 @@ import { createClient } from "@/lib/supabase/client";
 import type {
   Profile,
   Team,
+  TeamSubmission,
   Tournament,
   UserRole,
   Sport,
+  ExperienceLevel,
 } from "@/lib/database.types";
-import { sportEmoji, sportLabel } from "@/lib/sports";
+import { SPORTS, sportEmoji, sportLabel } from "@/lib/sports";
 
-type Section = "overview" | "teams" | "schedule" | "results" | "admins";
+type Section = "overview" | "submissions" | "teams" | "schedule" | "results" | "admins";
 
 type Props = {
   isSuperAdmin: boolean;
@@ -22,6 +24,7 @@ type Props = {
   profiles: Profile[];
   matches: unknown[];
   flights: unknown[];
+  submissions: TeamSubmission[];
 };
 
 export function AdminConsole(props: Props) {
@@ -46,8 +49,10 @@ export function AdminConsole(props: Props) {
     }
   }
 
-  const tabs: { key: Section; label: string }[] = [
+  const pendingCount = props.submissions.filter((s) => s.status === "pending").length;
+  const tabs: { key: Section; label: string; badge?: number }[] = [
     { key: "overview", label: "Overview" },
+    { key: "submissions", label: "Submissions", badge: pendingCount || undefined },
     { key: "teams", label: "Teams" },
     { key: "schedule", label: "Schedule" },
     { key: "results", label: "Results" },
@@ -68,6 +73,11 @@ export function AdminConsole(props: Props) {
             }`}
           >
             {t.label}
+            {t.badge ? (
+              <span className="ml-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--color-terracotta)] px-1.5 text-[11px] font-black text-[var(--color-cream)]">
+                {t.badge}
+              </span>
+            ) : null}
           </button>
         ))}
       </div>
@@ -99,6 +109,16 @@ export function AdminConsole(props: Props) {
               "Round-robin schedule generated for Padel and Tennis.",
             )
           }
+        />
+      )}
+
+      {section === "submissions" && (
+        <SubmissionsPanel
+          submissions={props.submissions}
+          busy={busy}
+          setBusy={setBusy}
+          setMsg={setMsg}
+          router={router}
         />
       )}
 
@@ -647,6 +667,213 @@ function AdminsPanel({
         </div>
       ))}
     </div>
+  );
+}
+
+function SubmissionsPanel({
+  submissions,
+  busy,
+  setBusy,
+  setMsg,
+  router,
+}: {
+  submissions: TeamSubmission[];
+  busy: boolean;
+  setBusy: (b: boolean) => void;
+  setMsg: (m: { kind: "ok" | "err"; text: string } | null) => void;
+  router: ReturnType<typeof useRouter>;
+}) {
+  const [filter, setFilter] = useState<"pending" | "all">("pending");
+  const list = submissions.filter((s) => (filter === "all" ? true : s.status === "pending"));
+
+  async function approve(id: string) {
+    setBusy(true);
+    setMsg(null);
+    const res = await fetch(`/api/team-submissions/${id}/approve`, { method: "POST" });
+    const json = await res.json().catch(() => ({}));
+    setBusy(false);
+    if (!res.ok) {
+      setMsg({ kind: "err", text: json.message ?? "Could not approve." });
+    } else {
+      setMsg({ kind: "ok", text: "Team approved — magic links sent to both players." });
+      router.refresh();
+    }
+  }
+
+  async function reject(id: string) {
+    const reason = window.prompt("Optional rejection reason (visible to admins only):") ?? "";
+    setBusy(true);
+    setMsg(null);
+    const res = await fetch(`/api/team-submissions/${id}/reject`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason: reason || null }),
+    });
+    const json = await res.json().catch(() => ({}));
+    setBusy(false);
+    if (!res.ok) {
+      setMsg({ kind: "err", text: json.message ?? "Could not reject." });
+    } else {
+      setMsg({ kind: "ok", text: "Submission rejected." });
+      router.refresh();
+    }
+  }
+
+  return (
+    <div className="mt-4 space-y-3">
+      <div className="flex gap-2">
+        {(["pending", "all"] as const).map((f) => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            className={`rounded-full border-2 border-[var(--color-ink)] px-3 py-1 text-xs font-bold ${
+              filter === f
+                ? "bg-[var(--color-ink)] text-[var(--color-cream)]"
+                : "bg-[var(--color-cream-50)]"
+            }`}
+          >
+            {f === "pending" ? "Pending" : "All"}
+          </button>
+        ))}
+      </div>
+
+      {list.length === 0 && (
+        <div className="card p-6 text-center text-[var(--color-ink)]/60">
+          {filter === "pending" ? "No pending submissions." : "No submissions yet."}
+        </div>
+      )}
+
+      {list.map((s) => (
+        <SubmissionCard key={s.id} sub={s} busy={busy} onApprove={() => approve(s.id)} onReject={() => reject(s.id)} />
+      ))}
+    </div>
+  );
+}
+
+function SubmissionCard({
+  sub,
+  busy,
+  onApprove,
+  onReject,
+}: {
+  sub: TeamSubmission;
+  busy: boolean;
+  onApprove: () => void;
+  onReject: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="card p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <p className="truncate text-lg font-extrabold">{sub.team_name}</p>
+            <SubStatusBadge status={sub.status} />
+          </div>
+          <p className="mt-0.5 text-xs text-[var(--color-ink)]/60">
+            {new Date(sub.created_at).toLocaleString()}
+          </p>
+          {sub.team_bio && (
+            <p className="mt-2 text-sm text-[var(--color-ink)]/80">{sub.team_bio}</p>
+          )}
+        </div>
+      </div>
+
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="mt-3 text-xs font-bold underline opacity-70 hover:opacity-100"
+      >
+        {open ? "Hide details" : "Show players & experience"}
+      </button>
+
+      {open && (
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <PlayerSummary
+            name={sub.player_1_name}
+            email={sub.player_1_email}
+            bio={sub.player_1_bio}
+            experience={sub.player_1_experience}
+          />
+          <PlayerSummary
+            name={sub.player_2_name}
+            email={sub.player_2_email}
+            bio={sub.player_2_bio}
+            experience={sub.player_2_experience}
+          />
+        </div>
+      )}
+
+      {sub.status === "pending" && (
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+          <button
+            onClick={onApprove}
+            disabled={busy}
+            className="btn btn-primary flex-1 disabled:opacity-50"
+          >
+            Approve & invite
+          </button>
+          <button
+            onClick={onReject}
+            disabled={busy}
+            className="btn btn-secondary flex-1 disabled:opacity-50"
+          >
+            Reject
+          </button>
+        </div>
+      )}
+
+      {sub.status === "rejected" && sub.rejection_reason && (
+        <p className="mt-3 text-xs text-[var(--color-terracotta-dark)]">
+          Reason: {sub.rejection_reason}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function PlayerSummary({
+  name,
+  email,
+  bio,
+  experience,
+}: {
+  name: string;
+  email: string;
+  bio: string | null;
+  experience: Record<Sport, ExperienceLevel>;
+}) {
+  return (
+    <div className="rounded-xl border-2 border-[var(--color-ink)] bg-[var(--color-cream-50)] p-3">
+      <p className="font-extrabold">{name}</p>
+      <p className="text-xs text-[var(--color-ink)]/65">{email}</p>
+      {bio && <p className="mt-1 text-sm text-[var(--color-ink)]/80">{bio}</p>}
+      <ul className="mt-2 grid grid-cols-2 gap-1 text-xs">
+        {SPORTS.map((s) => (
+          <li key={s.key} className="flex justify-between">
+            <span>
+              {s.emoji} {s.label}
+            </span>
+            <span className="font-bold capitalize">{experience?.[s.key] ?? "—"}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function SubStatusBadge({ status }: { status: TeamSubmission["status"] }) {
+  const styles =
+    status === "approved"
+      ? "bg-[var(--color-teal)] text-[var(--color-cream)]"
+      : status === "rejected"
+        ? "bg-[var(--color-terracotta)] text-[var(--color-cream)]"
+        : "bg-[var(--color-mustard)]";
+  return (
+    <span
+      className={`rounded-full border-2 border-[var(--color-ink)] px-2 py-0.5 text-[10px] font-black uppercase ${styles}`}
+    >
+      {status}
+    </span>
   );
 }
 

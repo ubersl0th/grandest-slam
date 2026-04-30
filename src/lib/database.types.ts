@@ -6,6 +6,27 @@ export type ExperienceLevel = "beginner" | "intermediate" | "advanced" | "pro";
 export type UserRole = "player" | "admin" | "super_admin";
 export type SubmissionStatus = "pending" | "confirmed" | "disputed";
 export type TournamentStatus = "not_started" | "active" | "completed";
+export type TeamReviewStatus = "pending" | "approved" | "rejected";
+
+export type TeamSubmission = {
+  id: string;
+  status: TeamReviewStatus;
+  team_name: string;
+  team_bio: string | null;
+  player_1_name: string;
+  player_1_email: string;
+  player_1_bio: string | null;
+  player_1_experience: Record<Sport, ExperienceLevel>;
+  player_2_name: string;
+  player_2_email: string;
+  player_2_bio: string | null;
+  player_2_experience: Record<Sport, ExperienceLevel>;
+  rejection_reason: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  approved_team_id: string | null;
+  created_at: string;
+};
 
 export type Profile = {
   id: string;

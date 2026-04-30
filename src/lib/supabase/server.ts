@@ -1,4 +1,5 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { createClient as createPlainClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
 type CookieToSet = { name: string; value: string; options: CookieOptions };
@@ -28,12 +29,15 @@ export async function createClient() {
 }
 
 export function createServiceClient() {
-  // Service role client — only use in server actions / route handlers for admin operations.
-  return createServerClient(
+  // Service role client — bypasses RLS. Only use in server actions / route handlers
+  // after verifying the caller is an admin via the cookie-based client.
+  // We must use the plain @supabase/supabase-js client here: createServerClient
+  // from @supabase/ssr would still pick up the caller's auth cookie and use that
+  // JWT for the Authorization header, ignoring the service role key.
+  return createPlainClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
-      cookies: { getAll: () => [], setAll: () => {} },
       auth: { persistSession: false, autoRefreshToken: false },
     },
   );

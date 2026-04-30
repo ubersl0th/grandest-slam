@@ -1,5 +1,5 @@
+import Image from "next/image";
 import Link from "next/link";
-import { Logo } from "@/components/logo";
 
 export default function LandingPage() {
   return (
@@ -21,7 +21,14 @@ export default function LandingPage() {
           </h1>
 
           <div className="mx-auto mt-8 flex max-w-md justify-center">
-            <Logo size={260} className="drop-shadow-[6px_6px_0_rgba(26,20,16,1)]" />
+            <Image
+              src="/The_Grandest_Slam.webp"
+              alt="The Grandest Slam"
+              width={320}
+              height={320}
+              priority
+              className="h-auto w-[260px] drop-shadow-[6px_6px_0_rgba(26,20,16,1)]"
+            />
           </div>
 
           <p className="mx-auto mt-8 max-w-xl text-lg md:text-xl text-[var(--color-ink)]/85">
@@ -136,7 +143,13 @@ function Header() {
   return (
     <header className="mx-auto flex max-w-5xl items-center justify-between">
       <Link href="/" className="flex items-center gap-2">
-        <div className="h-9 w-9 rounded-full border-2 border-[var(--color-ink)] bg-[var(--color-mustard)]" />
+        <Image
+          src="/The_Grandest_Slam.webp"
+          alt=""
+          width={64}
+          height={64}
+          className="h-9 w-9 rounded-full border-2 border-[var(--color-ink)] bg-[var(--color-mustard)] object-cover"
+        />
         <span className="font-black tracking-wider" style={{ fontFamily: "var(--font-display)" }}>
           GRANDEST SLAM
         </span>

@@ -20,6 +20,7 @@ export default async function AdminPage() {
     { data: profiles },
     { data: matches },
     { data: flights },
+    { data: submissions },
   ] = await Promise.all([
     supabase.from("tournament").select("*").eq("id", 1).maybeSingle(),
     supabase.from("teams").select("*").order("name"),
@@ -34,6 +35,7 @@ export default async function AdminPage() {
       .select("*, t1:team_1(name), t2:team_2(name)")
       .order("round_number")
       .order("created_at", { ascending: false }),
+    supabase.from("team_submissions").select("*").order("created_at", { ascending: false }),
   ]);
 
   return (
@@ -52,6 +54,7 @@ export default async function AdminPage() {
           profiles={profiles ?? []}
           matches={matches ?? []}
           flights={flights ?? []}
+          submissions={submissions ?? []}
         />
       </div>
     </AppShell>

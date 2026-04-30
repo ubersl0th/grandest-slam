@@ -67,18 +67,18 @@ export function JoinForm() {
           className="mx-auto grid h-16 w-16 place-items-center rounded-full border-2 border-[var(--color-ink)] bg-[var(--color-mustard)] text-3xl"
           aria-hidden
         >
-          🎉
+          📨
         </div>
         <h2
           className="mt-4 text-2xl"
           style={{ fontFamily: "var(--font-display)" }}
         >
-          You&apos;re in!
+          Submission received!
         </h2>
         <p className="mx-auto mt-3 max-w-sm text-[var(--color-ink)]/75">
-          We&apos;ve sent a magic link to <strong>{p1.email}</strong> and{" "}
-          <strong>{p2.email}</strong>. Click the link in your inbox to verify
-          your account.
+          An admin will review your team. Once approved, both{" "}
+          <strong>{p1.email}</strong> and <strong>{p2.email}</strong> will get a
+          magic link to finish signing in.
         </p>
       </div>
     );

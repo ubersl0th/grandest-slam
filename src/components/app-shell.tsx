@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { isAdminRole } from "@/lib/auth";
 import type { Profile, Team } from "@/lib/database.types";
@@ -15,7 +16,13 @@ export function AppShell({ user, children, active }: Props) {
       <header className="sticky top-0 z-40 border-b-2 border-[var(--color-ink)] bg-[var(--color-cream)]/95 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
           <Link href="/" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-full border-2 border-[var(--color-ink)] bg-[var(--color-mustard)]" />
+            <Image
+              src="/The_Grandest_Slam.webp"
+              alt=""
+              width={64}
+              height={64}
+              className="h-8 w-8 rounded-full border-2 border-[var(--color-ink)] bg-[var(--color-mustard)] object-cover"
+            />
             <span
               className="font-black tracking-wider text-sm sm:text-base"
               style={{ fontFamily: "var(--font-display)" }}
