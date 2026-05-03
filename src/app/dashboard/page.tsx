@@ -5,7 +5,7 @@ import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { SPORTS, sportEmoji, sportLabel } from "@/lib/sports";
 
-export const metadata = { title: "My team · The Grandest Slam" };
+export const metadata = { title: "Mitt lag · The Grandest Slam" };
 export const revalidate = 0;
 
 export default async function DashboardPage() {
@@ -23,14 +23,14 @@ export default async function DashboardPage() {
             className="text-3xl"
             style={{ fontFamily: "var(--font-display)" }}
           >
-            No team yet
+            Ingen lag enda
           </h1>
           <p className="mt-2 text-[var(--color-ink)]/75">
-            You&apos;re signed in but not attached to a team. Ask an admin to
-            help, or sign up via the team signup form.
+            Du er logget inn, men er ikke tilknyttet et lag. Be en administrator
+            om hjelp, eller meld deg på via påmeldingsskjemaet.
           </p>
           <Link href="/join" className="btn btn-primary mt-6">
-            Sign up a team
+            Meld på
           </Link>
         </div>
       </AppShell>
@@ -70,20 +70,20 @@ export default async function DashboardPage() {
     <AppShell user={user} active="dashboard">
       <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
         <p className="text-xs font-bold uppercase tracking-widest text-[var(--color-ink)]/60">
-          Welcome
+          Velkommen
         </p>
         <h1
           className="mt-1 text-3xl md:text-5xl"
           style={{ fontFamily: "var(--font-display)" }}
         >
-          {user.profile?.full_name?.split(" ")[0] ?? "Player"}
+          {user.profile?.full_name?.split(" ")[0] ?? "Spiller"}
         </h1>
         <p className="mt-2 text-[var(--color-ink)]/75">
-          Team: <Link href={`/teams/${team.id}`} className="font-bold underline">{team.name}</Link>
+          Lag: <Link href={`/teams/${team.id}`} className="font-bold underline">{team.name}</Link>
         </p>
 
         {/* Action: confirm pending */}
-        <Section title="Awaiting your confirmation">
+        <Section title="Venter på din bekreftelse">
           {([
             ...((pendingMatches ?? []) as PendingMatch[])
               .filter((m) => needsOpponentConfirmation(m, team.id))
@@ -91,7 +91,7 @@ export default async function DashboardPage() {
             ...((pendingFlights ?? []) as PendingFlight[])
               .filter((f) => needsOpponentConfirmationFlight(f, team.id))
               .map((f) => ({ kind: "flight" as const, f })),
-          ]).length === 0 && <Empty>You&apos;re all caught up.</Empty>}
+          ]).length === 0 && <Empty>Du er à jour.</Empty>}
           {((pendingMatches ?? []) as PendingMatch[])
             .filter((m) => needsOpponentConfirmation(m, team.id))
             .map((m) => (
@@ -107,10 +107,10 @@ export default async function DashboardPage() {
                   <p className="mt-1 truncate font-extrabold">
                     {extractName(m.ta)} {m.score_a}–{m.score_b} {extractName(m.tb)}
                   </p>
-                  <p className="text-xs text-[var(--color-ink)]/60">Tap to confirm or dispute</p>
+                  <p className="text-xs text-[var(--color-ink)]/60">Trykk for å bekrefte eller bestride</p>
                 </div>
                 <span className="rounded-full border-2 border-[var(--color-ink)] bg-[var(--color-mustard)] px-3 py-1 text-xs font-black">
-                  Confirm →
+                  Bekreft →
                 </span>
               </Link>
             ))}
@@ -129,18 +129,18 @@ export default async function DashboardPage() {
                   <p className="mt-1 truncate font-extrabold">
                     {extractName(f.t1)} {f.strokes_1}–{f.strokes_2} {extractName(f.t2)}
                   </p>
-                  <p className="text-xs text-[var(--color-ink)]/60">Tap to confirm or dispute</p>
+                  <p className="text-xs text-[var(--color-ink)]/60">Trykk for å bekrefte eller bestride</p>
                 </div>
                 <span className="rounded-full border-2 border-[var(--color-ink)] bg-[var(--color-mustard)] px-3 py-1 text-xs font-black">
-                  Confirm →
+                  Bekreft →
                 </span>
               </Link>
             ))}
         </Section>
 
-        <Section title="To submit">
+        <Section title="Skal sendes inn">
           {((upcomingMatches ?? []).length === 0 && (upcomingFlights ?? []).length === 0) && (
-            <Empty>Nothing scheduled yet — wait for the admin to start the tournament.</Empty>
+            <Empty>Ingenting planlagt enda — vent på at administratoren starter turneringen.</Empty>
           )}
           {((upcomingMatches ?? []) as PendingMatch[]).map((m) => (
             <Link
@@ -157,7 +157,7 @@ export default async function DashboardPage() {
                 </p>
               </div>
               <span className="rounded-full border-2 border-[var(--color-ink)] bg-[var(--color-cream-50)] px-3 py-1 text-xs font-black">
-                Submit →
+                Send inn →
               </span>
             </Link>
           ))}
@@ -176,13 +176,13 @@ export default async function DashboardPage() {
                 </p>
               </div>
               <span className="rounded-full border-2 border-[var(--color-ink)] bg-[var(--color-cream-50)] px-3 py-1 text-xs font-black">
-                Submit →
+                Send inn →
               </span>
             </Link>
           ))}
         </Section>
 
-        <Section title="Your sports">
+        <Section title="Dine idretter">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {SPORTS.map((s) => (
               <Link

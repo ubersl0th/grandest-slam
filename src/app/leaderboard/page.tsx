@@ -3,7 +3,7 @@ import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Leaderboard } from "./leaderboard";
 
-export const metadata = { title: "Leaderboard · The Grandest Slam" };
+export const metadata = { title: "Resultatliste · The Grandest Slam" };
 export const revalidate = 0;
 
 export default async function LeaderboardPage() {
@@ -22,10 +22,10 @@ export default async function LeaderboardPage() {
           className="text-4xl md:text-6xl"
           style={{ fontFamily: "var(--font-display)" }}
         >
-          Leaderboard
+          Resultatliste
         </h1>
         <p className="mt-2 text-[var(--color-ink)]/75">
-          Updates the moment scores are confirmed.
+          Oppdateres i det poengene er bekreftet.
         </p>
         <Leaderboard initial={totals ?? []} />
       </div>

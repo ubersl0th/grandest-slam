@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { SPORTS, sportEmoji, sportLabel } from "@/lib/sports";
+import { SPORTS, experienceLabel, sportEmoji, sportLabel } from "@/lib/sports";
 import type { Profile } from "@/lib/database.types";
 
 export const revalidate = 0;
@@ -70,7 +70,7 @@ export default async function TeamPage({
           href="/leaderboard"
           className="text-sm font-bold opacity-70 hover:opacity-100"
         >
-          ← Back to leaderboard
+          ← Tilbake til resultatlisten
         </Link>
 
         <div className="card mt-4 p-6 md:p-8">
@@ -126,7 +126,7 @@ export default async function TeamPage({
           className="mt-8 text-2xl"
           style={{ fontFamily: "var(--font-display)" }}
         >
-          Players
+          Spillere
         </h2>
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
           {((members as unknown as MemberRow[]) ?? []).map((m) => {
@@ -145,7 +145,7 @@ export default async function TeamPage({
                     return (
                       <li key={s.key} className="flex items-center justify-between">
                         <span>{s.emoji} {s.label}</span>
-                        <span className="font-bold capitalize">{e?.level ?? "—"}</span>
+                        <span className="font-bold">{experienceLabel(e?.level)}</span>
                       </li>
                     );
                   })}
@@ -159,7 +159,7 @@ export default async function TeamPage({
           className="mt-8 text-2xl"
           style={{ fontFamily: "var(--font-display)" }}
         >
-          Recent results
+          Siste resultater
         </h2>
         <div className="mt-3 space-y-2">
           {[
@@ -167,7 +167,7 @@ export default async function TeamPage({
             ...(flights ?? []).map((f) => ({ kind: "flight" as const, f })),
           ].length === 0 && (
             <div className="card p-4 text-sm text-[var(--color-ink)]/60">
-              No results yet.
+              Ingen resultater enda.
             </div>
           )}
           {(matches ?? []).map((m) => {
@@ -197,7 +197,7 @@ export default async function TeamPage({
                   </div>
                 ) : (
                   <span className="text-xs font-bold opacity-60">
-                    {m.status ?? "scheduled"}
+                    {m.status ?? "planlagt"}
                   </span>
                 )}
               </div>
@@ -222,7 +222,7 @@ export default async function TeamPage({
                   </span>
                 ) : (
                   <span className="text-xs font-bold opacity-60">
-                    {f.status ?? "scheduled"}
+                    {f.status ?? "planlagt"}
                   </span>
                 )}
               </div>

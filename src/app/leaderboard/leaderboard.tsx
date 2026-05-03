@@ -52,7 +52,7 @@ export function Leaderboard({ initial }: { initial: TeamTotals[] }) {
   }, [rows, tab]);
 
   const tabs: { key: Tab; label: string; emoji?: string }[] = [
-    { key: "overall", label: "Overall", emoji: "🏆" },
+    { key: "overall", label: "Totalt", emoji: "🏆" },
     ...SPORTS.map((s) => ({ key: s.key as Tab, label: s.label, emoji: s.emoji })),
   ];
 
@@ -103,7 +103,7 @@ export function Leaderboard({ initial }: { initial: TeamTotals[] }) {
                     <p className="truncate font-extrabold">{row.team_name}</p>
                     {tab === "overall" && (
                       <p className="text-xs text-[var(--color-ink)]/60">
-                        Padel {row.padel_points} · Tennis {row.tennis_points} · Disc {row.disc_golf_points} · Golf {row.golf_points}
+                        Padel {row.padel_points} · Tennis {row.tennis_points} · Frisbee {row.disc_golf_points} · Golf {row.golf_points}
                       </p>
                     )}
                     {tab !== "overall" && (
@@ -124,7 +124,7 @@ export function Leaderboard({ initial }: { initial: TeamTotals[] }) {
           })}
           {sorted.length === 0 && (
             <li className="card p-8 text-center text-[var(--color-ink)]/60">
-              No teams yet.
+              Ingen lag enda.
             </li>
           )}
         </ol>

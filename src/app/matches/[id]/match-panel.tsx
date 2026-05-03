@@ -43,11 +43,11 @@ export function MatchPanel({ match, viewer }: Props) {
 
   async function submit() {
     if (scoreA === "" || scoreB === "") {
-      setError("Enter both scores.");
+      setError("Skriv inn begge resultatene.");
       return;
     }
     if (scoreA === scoreB) {
-      setError("There must be a winner — no ties.");
+      setError("Det må være en vinner — uavgjort er ikke tillatt.");
       return;
     }
     setError(null);
@@ -76,7 +76,7 @@ export function MatchPanel({ match, viewer }: Props) {
   }
 
   async function dispute() {
-    const reason = window.prompt("What's wrong with the submitted score?");
+    const reason = window.prompt("Hva er galt med det innsendte resultatet?");
     if (reason === null) return;
     setBusy(true);
     setError(null);
@@ -97,7 +97,7 @@ export function MatchPanel({ match, viewer }: Props) {
       {/* Score input or display */}
       <div className="card p-5">
         <h2 className="text-xs font-extrabold uppercase tracking-widest text-[var(--color-ink)]/60">
-          Score
+          Resultat
         </h2>
         <div className="mt-3 grid grid-cols-2 gap-3">
           <ScoreSide
@@ -117,10 +117,10 @@ export function MatchPanel({ match, viewer }: Props) {
         </div>
         {canEdit && (
           <label className="mt-4 block">
-            <span className="label">Notes (optional)</span>
+            <span className="label">Notater (valgfritt)</span>
             <input
               className="input"
-              placeholder="e.g. epic third set"
+              placeholder="f.eks. episk tredje sett"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
@@ -133,12 +133,12 @@ export function MatchPanel({ match, viewer }: Props) {
         <div className="mt-4 flex flex-col gap-2 sm:flex-row">
           {canEdit && match.status !== "pending" && viewer.isParticipant && (
             <button onClick={submit} disabled={busy} className="btn btn-primary flex-1 disabled:opacity-50">
-              {busy ? "Submitting…" : "Submit result"}
+              {busy ? "Sender…" : "Send inn resultat"}
             </button>
           )}
           {canEdit && match.status === "pending" && viewer.submittedByMyTeam && (
             <button onClick={submit} disabled={busy} className="btn btn-secondary flex-1 disabled:opacity-50">
-              {busy ? "Updating…" : "Update submitted score"}
+              {busy ? "Oppdaterer…" : "Oppdater innsendt resultat"}
             </button>
           )}
           {showConfirm && (
@@ -148,21 +148,21 @@ export function MatchPanel({ match, viewer }: Props) {
                 disabled={busy}
                 className="btn btn-tertiary flex-1 disabled:opacity-50"
               >
-                {busy ? "Confirming…" : "Confirm score ✓"}
+                {busy ? "Bekrefter…" : "Bekreft resultat ✓"}
               </button>
               <button
                 onClick={dispute}
                 disabled={busy}
                 className="btn btn-secondary flex-1 disabled:opacity-50"
               >
-                Dispute
+                Bestrid
               </button>
             </>
           )}
           {match.status === "confirmed" && viewer.isAdmin && (
             <button
               onClick={async () => {
-                if (!window.confirm("Reopen this match? The score will be reset to pending.")) return;
+                if (!window.confirm("Gjenåpne denne kampen? Resultatet tilbakestilles til avventende.")) return;
                 setBusy(true);
                 await supabase
                   .from("matches")
@@ -173,15 +173,15 @@ export function MatchPanel({ match, viewer }: Props) {
               }}
               className="btn btn-secondary flex-1"
             >
-              Admin: reopen
+              Admin: gjenåpne
             </button>
           )}
         </div>
       </div>
 
       <p className="text-center text-xs text-[var(--color-ink)]/55">
-        How it works: one team submits the score, the opposing team taps Confirm. If something
-        looks off, tap Dispute to flag it for an admin.
+        Slik fungerer det: ett lag sender inn resultatet, og motstanderlaget trykker Bekreft.
+        Hvis noe ser feil ut, trykk Bestrid for å varsle en administrator.
       </p>
     </div>
   );
@@ -192,7 +192,7 @@ function StatusBanner({ match, viewer }: Props) {
     return (
       <div className="card border-[var(--color-teal)] bg-[var(--color-teal)]/10 p-4">
         <p className="text-sm font-bold text-[var(--color-teal-dark)]">
-          ✓ Final result confirmed
+          ✓ Endelig resultat bekreftet
         </p>
       </div>
     );
@@ -202,7 +202,7 @@ function StatusBanner({ match, viewer }: Props) {
       return (
         <div className="card border-[var(--color-mustard)] bg-[var(--color-mustard)]/20 p-4">
           <p className="text-sm font-bold">
-            ⏳ Waiting for the other team to confirm.
+            ⏳ Venter på at det andre laget bekrefter.
           </p>
         </div>
       );
@@ -211,14 +211,14 @@ function StatusBanner({ match, viewer }: Props) {
       return (
         <div className="card border-[var(--color-mustard)] bg-[var(--color-mustard)]/20 p-4">
           <p className="text-sm font-bold">
-            👋 {match.submitter_name ?? "The other team"} submitted a score. Confirm or dispute it below.
+            👋 {match.submitter_name ?? "Det andre laget"} sendte inn et resultat. Bekreft eller bestrid det nedenfor.
           </p>
         </div>
       );
     }
     return (
       <div className="card p-4">
-        <p className="text-sm">Awaiting opponent confirmation.</p>
+        <p className="text-sm">Venter på bekreftelse fra motstanderen.</p>
       </div>
     );
   }
@@ -226,7 +226,7 @@ function StatusBanner({ match, viewer }: Props) {
     return (
       <div className="card border-[var(--color-terracotta)] bg-[var(--color-terracotta)]/10 p-4">
         <p className="text-sm font-bold text-[var(--color-terracotta-dark)]">
-          ⚠️ This score is disputed. An admin needs to resolve it.
+          ⚠️ Dette resultatet er bestridt. En administrator må løse det.
         </p>
       </div>
     );
@@ -234,13 +234,13 @@ function StatusBanner({ match, viewer }: Props) {
   if (viewer.isParticipant) {
     return (
       <div className="card p-4">
-        <p className="text-sm">Match not played yet — submit your score when it&apos;s done.</p>
+        <p className="text-sm">Kampen er ikke spilt enda — send inn resultatet når den er ferdig.</p>
       </div>
     );
   }
   return (
     <div className="card p-4">
-      <p className="text-sm">This match hasn&apos;t been played yet.</p>
+      <p className="text-sm">Denne kampen er ikke spilt enda.</p>
     </div>
   );
 }

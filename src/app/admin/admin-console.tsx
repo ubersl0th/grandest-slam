@@ -15,7 +15,7 @@ import type {
   Sport,
   ExperienceLevel,
 } from "@/lib/database.types";
-import { EXPERIENCE_WEIGHTS, SPORTS, sportEmoji, sportLabel } from "@/lib/sports";
+import { EXPERIENCE_WEIGHTS, SPORTS, experienceLabel, sportEmoji, sportLabel } from "@/lib/sports";
 import {
   generateBalancedTeams,
   type BalancePlayer,
@@ -60,12 +60,12 @@ export function AdminConsole(props: Props) {
 
   const pendingCount = props.submissions.filter((s) => s.status === "pending").length;
   const tabs: { key: Section; label: string; badge?: number }[] = [
-    { key: "overview", label: "Overview" },
-    { key: "submissions", label: "Submissions", badge: pendingCount || undefined },
-    { key: "teams", label: "Teams" },
-    { key: "schedule", label: "Schedule" },
-    { key: "results", label: "Results" },
-    ...(props.isSuperAdmin ? [{ key: "admins" as const, label: "Admins" }] : []),
+    { key: "overview", label: "Oversikt" },
+    { key: "submissions", label: "Påmeldinger", badge: pendingCount || undefined },
+    { key: "teams", label: "Lag" },
+    { key: "schedule", label: "Oppsett" },
+    { key: "results", label: "Resultater" },
+    ...(props.isSuperAdmin ? [{ key: "admins" as const, label: "Administratorer" }] : []),
   ];
 
   return (
@@ -110,12 +110,12 @@ export function AdminConsole(props: Props) {
           matches={props.matches}
           flights={props.flights}
           busy={busy}
-          onStart={() => action(() => supabase.rpc("start_tournament"), "Tournament started.")}
-          onEnd={() => action(() => supabase.rpc("end_tournament"), "Tournament ended.")}
+          onStart={() => action(() => supabase.rpc("start_tournament"), "Turneringen er startet.")}
+          onEnd={() => action(() => supabase.rpc("end_tournament"), "Turneringen er avsluttet.")}
           onGenerateRoundRobin={() =>
             action(
               () => supabase.rpc("generate_round_robin"),
-              "Round-robin schedule generated for Padel and Tennis.",
+              "Serieoppsett generert for Padel og Tennis.",
             )
           }
         />
@@ -208,18 +208,18 @@ function Overview({
               {labelFor(status)}
             </p>
             <p className="mt-1 text-sm text-[var(--color-ink)]/70">
-              {teamCount} team{teamCount === 1 ? "" : "s"} signed up
+              {teamCount} {teamCount === 1 ? "lag" : "lag"} påmeldt
             </p>
           </div>
           <div className="flex flex-col gap-2">
             {status !== "active" && (
               <button onClick={onStart} disabled={busy || teamCount < 2} className="btn btn-primary disabled:opacity-50">
-                Start tournament
+                Start turnering
               </button>
             )}
             {status === "active" && (
               <button onClick={onEnd} disabled={busy} className="btn btn-secondary disabled:opacity-50">
-                End tournament
+                Avslutt turnering
               </button>
             )}
           </div>
@@ -227,21 +227,21 @@ function Overview({
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat label="Teams" value={teamCount} />
-        <Stat label="Matches" value={matchStats.total} />
-        <Stat label="Pending" value={matchStats.pending + flightStats.pending} />
-        <Stat label="Confirmed" value={matchStats.confirmed + flightStats.confirmed} />
+        <Stat label="Lag" value={teamCount} />
+        <Stat label="Kamper" value={matchStats.total} />
+        <Stat label="Avventer" value={matchStats.pending + flightStats.pending} />
+        <Stat label="Bekreftet" value={matchStats.confirmed + flightStats.confirmed} />
       </div>
 
       <div className="card p-5">
-        <h3 className="text-lg font-extrabold">Setup actions</h3>
+        <h3 className="text-lg font-extrabold">Oppsetthandlinger</h3>
         <p className="mt-1 text-sm text-[var(--color-ink)]/70">
-          Generate the Padel + Tennis round-robin once teams have signed up. Add flights for Disc
-          Golf and Golf in the Schedule tab.
+          Generer Padel- og Tennis-serieoppsettet når lagene er på plass. Legg til runder for
+          Frisbeegolf og Golf i Oppsett-fanen.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <button onClick={onGenerateRoundRobin} disabled={busy || teamCount < 2} className="btn btn-secondary disabled:opacity-50">
-            Generate round-robin (Padel & Tennis)
+            Generer serieoppsett (Padel og Tennis)
           </button>
         </div>
       </div>
@@ -263,10 +263,18 @@ function Stat({ label, value }: { label: string; value: number | string }) {
 }
 
 function labelFor(s: string) {
-  return s
-    .split("_")
-    .map((w) => w[0].toUpperCase() + w.slice(1))
-    .join(" ");
+  const map: Record<string, string> = {
+    not_started: "Ikke startet",
+    active: "Aktiv",
+    ended: "Avsluttet",
+  };
+  return (
+    map[s] ??
+    s
+      .split("_")
+      .map((w) => w[0].toUpperCase() + w.slice(1))
+      .join(" ")
+  );
 }
 
 function useMatchStats(matches: unknown[]) {
@@ -377,7 +385,7 @@ function TeamsPanel({
     for (const pair of preview.pairs) {
       let name = "";
       while (true) {
-        const candidate = `Team ${counter++}`;
+        const candidate = `Lag ${counter++}`;
         if (!existingNames.has(candidate.toLowerCase())) {
           name = candidate;
           existingNames.add(candidate.toLowerCase());
@@ -390,7 +398,7 @@ function TeamsPanel({
         .select()
         .single();
       if (teamErr || !team) {
-        setApplyError(teamErr?.message ?? "Could not create team.");
+        setApplyError(teamErr?.message ?? "Kunne ikke opprette laget.");
         router.refresh();
         return;
       }
@@ -424,7 +432,7 @@ function TeamsPanel({
     }
     await action(
       async () => supabase.from("teams").insert({ name }),
-      `Created ${name}.`,
+      `Opprettet ${name}.`,
     );
   }
 
@@ -433,10 +441,9 @@ function TeamsPanel({
       <div className="card p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h3 className="text-lg font-extrabold">Roster</h3>
+            <h3 className="text-lg font-extrabold">Spillerliste</h3>
             <p className="mt-1 text-sm text-[var(--color-ink)]/70">
-              {unassigned.length} unassigned · {teams.length} team
-              {teams.length === 1 ? "" : "s"}
+              {unassigned.length} uten lag · {teams.length} {teams.length === 1 ? "lag" : "lag"}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -445,14 +452,14 @@ function TeamsPanel({
               disabled={busy || generating || unassigned.length < 2}
               className="btn btn-primary disabled:opacity-50"
             >
-              {generating ? "Crunching…" : "Auto-generate teams"}
+              {generating ? "Regner ut…" : "Generer lag automatisk"}
             </button>
             <button
               onClick={createEmptyTeam}
               disabled={busy}
               className="btn btn-secondary disabled:opacity-50"
             >
-              Add empty team
+              Legg til tomt lag
             </button>
           </div>
         </div>
@@ -460,7 +467,7 @@ function TeamsPanel({
         {unassigned.length > 0 && (
           <div className="mt-4">
             <p className="text-xs font-bold uppercase tracking-widest text-[var(--color-ink)]/60">
-              Unassigned players
+              Spillere uten lag
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
               {unassigned.map((p) => (
@@ -477,7 +484,7 @@ function TeamsPanel({
                         supabase
                           .from("team_members")
                           .insert({ team_id: teamId, profile_id: p.id }),
-                      `Added ${p.full_name} to team.`,
+                      `La til ${p.full_name} på laget.`,
                     )
                   }
                 />
@@ -508,7 +515,7 @@ function TeamsPanel({
       <div className="space-y-2">
         {teams.length === 0 && (
           <div className="card p-6 text-center text-[var(--color-ink)]/60">
-            No teams yet.
+            Ingen lag enda.
           </div>
         )}
         {teams.map((t) => (
@@ -521,17 +528,17 @@ function TeamsPanel({
             onDelete={() =>
               action(
                 async () => {
-                  if (!window.confirm(`Delete team "${t.name}"?`))
+                  if (!window.confirm(`Slette laget «${t.name}»?`))
                     return { error: null };
                   return supabase.from("teams").delete().eq("id", t.id);
                 },
-                `Deleted ${t.name}.`,
+                `Slettet ${t.name}.`,
               )
             }
             onRename={(name) =>
               action(
                 async () => supabase.from("teams").update({ name }).eq("id", t.id),
-                `Renamed.`,
+                `Navnet ble endret.`,
               )
             }
             onAddMember={(profileId) =>
@@ -540,7 +547,7 @@ function TeamsPanel({
                   supabase
                     .from("team_members")
                     .insert({ team_id: t.id, profile_id: profileId }),
-                "Added to team.",
+                "Lagt til på laget.",
               )
             }
             onRemoveMember={(profileId) =>
@@ -551,7 +558,7 @@ function TeamsPanel({
                     .delete()
                     .eq("team_id", t.id)
                     .eq("profile_id", profileId),
-                "Removed from team.",
+                "Fjernet fra laget.",
               )
             }
           />
@@ -593,7 +600,7 @@ function UnassignedChip({
         {profile.nickname || profile.full_name}
       </p>
       <p className="text-[10px] uppercase tracking-wider text-[var(--color-ink)]/60">
-        skill {total}
+        nivå {total}
       </p>
       {eligibleTeams.length > 0 && (
         <select
@@ -604,7 +611,7 @@ function UnassignedChip({
           }}
           className="mt-1 w-full rounded-full border-2 border-[var(--color-ink)] bg-[var(--color-cream)] px-2 py-1 text-[11px] font-bold"
         >
-          <option value="">Add to team…</option>
+          <option value="">Legg til på lag…</option>
           {eligibleTeams.map((t) => (
             <option key={t.id} value={t.id}>
               {t.name}
@@ -637,9 +644,9 @@ function PreviewPanel({
     <div className="card border-[var(--color-teal)] bg-[var(--color-teal)]/5 p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-lg font-extrabold">Proposed pairings</h3>
+          <h3 className="text-lg font-extrabold">Foreslåtte parringer</h3>
           <p className="mt-1 text-sm text-[var(--color-ink)]/70">
-            Per-sport pair-skill spread (lower = more balanced):
+            Spredning i parnivå per idrett (lavere = mer balansert):
           </p>
           <ul className="mt-1 flex flex-wrap gap-2 text-xs">
             {SPORTS.map((s) => (
@@ -659,21 +666,21 @@ function PreviewPanel({
             disabled={busy}
             className="btn btn-primary disabled:opacity-50"
           >
-            Apply pairings
+            Bruk parringene
           </button>
           <button
             onClick={onRegenerate}
             disabled={busy}
             className="btn btn-secondary disabled:opacity-50"
           >
-            Re-roll
+            Nytt forsøk
           </button>
           <button
             onClick={onCancel}
             disabled={busy}
             className="rounded-full border-2 border-[var(--color-ink)] bg-[var(--color-cream-50)] px-4 py-2 text-sm font-bold disabled:opacity-50"
           >
-            Cancel
+            Avbryt
           </button>
         </div>
       </div>
@@ -689,7 +696,7 @@ function PreviewPanel({
               className="rounded-xl border-2 border-[var(--color-ink)] bg-[var(--color-cream-50)] p-3"
             >
               <p className="text-xs font-bold uppercase tracking-wider text-[var(--color-ink)]/60">
-                Team {idx + 1}
+                Lag {idx + 1}
               </p>
               <p className="mt-0.5 text-base font-extrabold">
                 {a?.nickname || a?.full_name} <span className="opacity-50">+</span>{" "}
@@ -709,7 +716,7 @@ function PreviewPanel({
         {preview.unassigned && (
           <div className="rounded-xl border-2 border-dashed border-[var(--color-ink)] bg-[var(--color-cream-50)] p-3">
             <p className="text-xs font-bold uppercase tracking-wider text-[var(--color-ink)]/60">
-              Unassigned (odd number of players)
+              Uten lag (oddetall spillere)
             </p>
             <p className="mt-0.5 font-extrabold">
               {profilesById.get(preview.unassigned.id)?.nickname ||
@@ -776,20 +783,20 @@ function TeamCard({
           onClick={() => setEditing((e) => !e)}
           className="rounded-full border-2 border-[var(--color-ink)] bg-[var(--color-cream-50)] px-3 py-1 text-xs font-bold"
         >
-          {editing ? "Cancel" : "Rename"}
+          {editing ? "Avbryt" : "Endre navn"}
         </button>
         <button
           onClick={onDelete}
           disabled={busy}
           className="rounded-full border-2 border-[var(--color-ink)] bg-[var(--color-terracotta)] px-3 py-1 text-xs font-bold text-[var(--color-cream)] disabled:opacity-50"
         >
-          Delete
+          Slett
         </button>
       </div>
 
       <div className="mt-3 space-y-1">
         {members.length === 0 && (
-          <p className="text-xs italic text-[var(--color-ink)]/60">No members.</p>
+          <p className="text-xs italic text-[var(--color-ink)]/60">Ingen medlemmer.</p>
         )}
         {members.map((m) => (
           <div
@@ -809,7 +816,7 @@ function TeamCard({
               disabled={busy}
               className="rounded-full border-2 border-[var(--color-ink)] bg-[var(--color-cream)] px-2 py-0.5 text-[10px] font-bold disabled:opacity-50"
             >
-              Remove
+              Fjern
             </button>
           </div>
         ))}
@@ -822,7 +829,7 @@ function TeamCard({
             }}
             className="w-full rounded-lg border-2 border-[var(--color-ink)] bg-[var(--color-cream)] px-2 py-1 text-xs font-bold"
           >
-            <option value="">Add player…</option>
+            <option value="">Legg til spiller…</option>
             {unassigned.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.nickname || p.full_name} ({p.email})
@@ -856,38 +863,38 @@ function SchedulePanel({
   return (
     <div className="mt-4 space-y-5">
       <div className="card p-5">
-        <h3 className="text-lg font-extrabold">Add flight</h3>
+        <h3 className="text-lg font-extrabold">Legg til runde</h3>
         <p className="mt-1 text-sm text-[var(--color-ink)]/70">
-          Disc Golf and Golf flights pair two teams. Players play together in best ball; one stroke
-          score per team.
+          Frisbeegolf- og Golf-runder parer to lag. Spillerne spiller sammen i best ball; én slagscore
+          per lag.
         </p>
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label className="block">
-            <span className="label">Sport</span>
+            <span className="label">Idrett</span>
             <select
               className="input"
               value={sport}
               onChange={(e) => setSport(e.target.value as Sport)}
             >
-              <option value="disc_golf">Disc Golf</option>
+              <option value="disc_golf">Frisbeegolf</option>
               <option value="golf">Golf</option>
             </select>
           </label>
           <label className="block">
-            <span className="label">Round</span>
+            <span className="label">Runde</span>
             <select
               className="input"
               value={round}
               onChange={(e) => setRound(Number(e.target.value))}
             >
-              <option value={1}>Round 1</option>
-              <option value={2}>Round 2</option>
+              <option value={1}>Runde 1</option>
+              <option value={2}>Runde 2</option>
             </select>
           </label>
           <label className="block">
-            <span className="label">Team 1</span>
+            <span className="label">Lag 1</span>
             <select className="input" value={t1} onChange={(e) => setT1(e.target.value)}>
-              <option value="">— select —</option>
+              <option value="">— velg —</option>
               {teams.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.name}
@@ -896,9 +903,9 @@ function SchedulePanel({
             </select>
           </label>
           <label className="block">
-            <span className="label">Team 2</span>
+            <span className="label">Lag 2</span>
             <select className="input" value={t2} onChange={(e) => setT2(e.target.value)}>
-              <option value="">— select —</option>
+              <option value="">— velg —</option>
               {teams.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.name}
@@ -918,21 +925,21 @@ function SchedulePanel({
                   team_1: t1,
                   team_2: t2,
                 }),
-              "Flight added.",
+              "Runde lagt til.",
             )
           }
           className="btn btn-primary mt-4 disabled:opacity-50"
         >
-          Add flight
+          Legg til runde
         </button>
       </div>
 
       <div>
-        <h3 className="mb-3 text-lg font-extrabold">Existing flights</h3>
+        <h3 className="mb-3 text-lg font-extrabold">Eksisterende runder</h3>
         <div className="space-y-2">
           {flights.length === 0 && (
             <div className="card p-4 text-center text-sm text-[var(--color-ink)]/60">
-              No flights yet.
+              Ingen runder enda.
             </div>
           )}
           {(flights as FlightWithTeams[]).map((f) => (
@@ -943,10 +950,10 @@ function SchedulePanel({
               onDelete={() =>
                 action(
                   async () => {
-                    if (!window.confirm("Delete this flight?")) return { error: null };
+                    if (!window.confirm("Slette denne runden?")) return { error: null };
                     return supabase.from("flights").delete().eq("id", f.id);
                   },
-                  "Flight deleted.",
+                  "Runde slettet.",
                 )
               }
             />
@@ -993,14 +1000,14 @@ function FlightRow({
         href={`/matches/flight/${flight.id}`}
         className="rounded-full border-2 border-[var(--color-ink)] bg-[var(--color-cream-50)] px-3 py-1 text-xs font-bold"
       >
-        Open
+        Åpne
       </Link>
       <button
         onClick={onDelete}
         disabled={busy}
         className="rounded-full border-2 border-[var(--color-ink)] bg-[var(--color-terracotta)] px-3 py-1 text-xs font-bold text-[var(--color-cream)] disabled:opacity-50"
       >
-        Delete
+        Slett
       </button>
     </div>
   );
@@ -1029,7 +1036,7 @@ function ResultsPanel({
     <div className="mt-4 space-y-2">
       {allMatches.length === 0 && allFlights.length === 0 && (
         <div className="card p-6 text-center text-[var(--color-ink)]/60">
-          No results yet.
+          Ingen resultater enda.
         </div>
       )}
       {allMatches.map((m) => (
@@ -1048,12 +1055,12 @@ function ResultsPanel({
             </p>
             <p className="text-xs text-[var(--color-ink)]/60">
               {m.status === "confirmed"
-                ? `Final ${m.score_a}–${m.score_b}`
+                ? `Endelig ${m.score_a}–${m.score_b}`
                 : m.status === "pending"
-                  ? `Pending ${m.score_a}–${m.score_b}`
+                  ? `Avventer ${m.score_a}–${m.score_b}`
                   : m.status === "disputed"
-                    ? "Disputed"
-                    : "Not played"}
+                    ? "Bestridt"
+                    : "Ikke spilt"}
             </p>
           </div>
         </Link>
@@ -1093,8 +1100,8 @@ function AdminsPanel({
   return (
     <div className="mt-4 space-y-2">
       <p className="text-sm text-[var(--color-ink)]/70">
-        Promote players to admin so they can manage teams and resolve disputes. Super-admin is
-        immutable from the UI.
+        Gi spillere administratorrolle slik at de kan administrere lag og løse tvister. Superadministrator
+        kan ikke endres fra grensesnittet.
       </p>
       {profiles.map((p) => (
         <div key={p.id} className="card flex items-center gap-3 p-3">
@@ -1116,12 +1123,12 @@ function AdminsPanel({
                     });
                     return { error };
                   },
-                  `Updated ${p.full_name}.`,
+                  `${p.full_name} er oppdatert.`,
                 )
               }
               className="rounded-full border-2 border-[var(--color-ink)] bg-[var(--color-cream-50)] px-2 py-1 text-xs font-bold"
             >
-              <option value="player">Player</option>
+              <option value="player">Spiller</option>
               <option value="admin">Admin</option>
             </select>
           )}
@@ -1154,15 +1161,15 @@ function SubmissionsPanel({
     const json = await res.json().catch(() => ({}));
     setBusy(false);
     if (!res.ok) {
-      setMsg({ kind: "err", text: json.message ?? "Could not approve." });
+      setMsg({ kind: "err", text: json.message ?? "Kunne ikke godkjenne." });
     } else {
-      setMsg({ kind: "ok", text: "Player approved — magic link sent." });
+      setMsg({ kind: "ok", text: "Spiller godkjent — magisk lenke sendt." });
       router.refresh();
     }
   }
 
   async function reject(id: string) {
-    const reason = window.prompt("Optional rejection reason (visible to admins only):") ?? "";
+    const reason = window.prompt("Valgfri begrunnelse for avvisning (kun synlig for administratorer):") ?? "";
     setBusy(true);
     setMsg(null);
     const res = await fetch(`/api/player-submissions/${id}/reject`, {
@@ -1173,9 +1180,9 @@ function SubmissionsPanel({
     const json = await res.json().catch(() => ({}));
     setBusy(false);
     if (!res.ok) {
-      setMsg({ kind: "err", text: json.message ?? "Could not reject." });
+      setMsg({ kind: "err", text: json.message ?? "Kunne ikke avvise." });
     } else {
-      setMsg({ kind: "ok", text: "Submission rejected." });
+      setMsg({ kind: "ok", text: "Påmelding avvist." });
       router.refresh();
     }
   }
@@ -1193,14 +1200,14 @@ function SubmissionsPanel({
                 : "bg-[var(--color-cream-50)]"
             }`}
           >
-            {f === "pending" ? "Pending" : "All"}
+            {f === "pending" ? "Avventer" : "Alle"}
           </button>
         ))}
       </div>
 
       {list.length === 0 && (
         <div className="card p-6 text-center text-[var(--color-ink)]/60">
-          {filter === "pending" ? "No pending submissions." : "No submissions yet."}
+          {filter === "pending" ? "Ingen påmeldinger venter." : "Ingen påmeldinger enda."}
         </div>
       )}
 
@@ -1253,7 +1260,7 @@ function SubmissionCard({
         onClick={() => setOpen((o) => !o)}
         className="mt-3 text-xs font-bold underline opacity-70 hover:opacity-100"
       >
-        {open ? "Hide skill levels" : "Show skill levels"}
+        {open ? "Skjul ferdighetsnivåer" : "Vis ferdighetsnivåer"}
       </button>
 
       {open && (
@@ -1266,8 +1273,8 @@ function SubmissionCard({
               <span>
                 {s.emoji} {s.label}
               </span>
-              <span className="font-bold capitalize">
-                {sub.experience?.[s.key] ?? "—"}
+              <span className="font-bold">
+                {experienceLabel(sub.experience?.[s.key])}
               </span>
             </li>
           ))}
@@ -1281,21 +1288,21 @@ function SubmissionCard({
             disabled={busy}
             className="btn btn-primary flex-1 disabled:opacity-50"
           >
-            Approve & invite
+            Godkjenn og inviter
           </button>
           <button
             onClick={onReject}
             disabled={busy}
             className="btn btn-secondary flex-1 disabled:opacity-50"
           >
-            Reject
+            Avvis
           </button>
         </div>
       )}
 
       {sub.status === "rejected" && sub.rejection_reason && (
         <p className="mt-3 text-xs text-[var(--color-terracotta-dark)]">
-          Reason: {sub.rejection_reason}
+          Begrunnelse: {sub.rejection_reason}
         </p>
       )}
     </div>
@@ -1309,11 +1316,16 @@ function SubStatusBadge({ status }: { status: PlayerSubmission["status"] }) {
       : status === "rejected"
         ? "bg-[var(--color-terracotta)] text-[var(--color-cream)]"
         : "bg-[var(--color-mustard)]";
+  const labels: Record<PlayerSubmission["status"], string> = {
+    approved: "Godkjent",
+    rejected: "Avvist",
+    pending: "Avventer",
+  };
   return (
     <span
       className={`rounded-full border-2 border-[var(--color-ink)] px-2 py-0.5 text-[10px] font-black uppercase ${styles}`}
     >
-      {status}
+      {labels[status] ?? status}
     </span>
   );
 }
@@ -1325,11 +1337,16 @@ function RoleBadge({ role }: { role: UserRole }) {
       : role === "admin"
         ? "bg-[var(--color-mustard)]"
         : "bg-[var(--color-cream-50)]";
+  const labels: Record<UserRole, string> = {
+    super_admin: "Superadmin",
+    admin: "Admin",
+    player: "Spiller",
+  };
   return (
     <span
       className={`rounded-full border-2 border-[var(--color-ink)] px-2 py-0.5 text-[10px] font-black uppercase ${styles}`}
     >
-      {role.replace("_", " ")}
+      {labels[role] ?? role}
     </span>
   );
 }

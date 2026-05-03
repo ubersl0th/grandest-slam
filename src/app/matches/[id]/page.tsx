@@ -39,7 +39,7 @@ export default async function MatchDetailPage({
     <AppShell user={user} active="matches">
       <div className="mx-auto max-w-2xl px-4 py-6 md:py-10">
         <Link href="/matches" className="text-sm font-bold opacity-70 hover:opacity-100">
-          ← All matches
+          ← Alle kamper
         </Link>
 
         <div className="mt-4">

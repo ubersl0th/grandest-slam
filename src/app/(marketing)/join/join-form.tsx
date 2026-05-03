@@ -49,12 +49,12 @@ export function JoinForm() {
       });
       const json = await res.json();
       if (!res.ok) {
-        setError(json.message ?? "Something went wrong.");
+        setError(json.message ?? "Noe gikk galt.");
       } else {
         setDone(true);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Network error.");
+      setError(err instanceof Error ? err.message : "Nettverksfeil.");
     } finally {
       setSubmitting(false);
     }
@@ -73,11 +73,11 @@ export function JoinForm() {
           className="mt-4 text-2xl"
           style={{ fontFamily: "var(--font-display)" }}
         >
-          Submission received!
+          Påmelding mottatt!
         </h2>
         <p className="mx-auto mt-3 max-w-sm text-[var(--color-ink)]/75">
-          An admin will review your sign-up. Once approved, <strong>{form.email}</strong>{" "}
-          will get a magic link to finish signing in.
+          En administrator vil gjennomgå påmeldingen din. Når den er godkjent,{" "}
+          får <strong>{form.email}</strong> en magisk lenke for å fullføre innloggingen.
         </p>
       </div>
     );
@@ -87,11 +87,11 @@ export function JoinForm() {
     <form onSubmit={onSubmit} className="mt-8 space-y-6">
       <div className="card p-5 md:p-6">
         <h2 className="text-xs font-extrabold uppercase tracking-widest text-[var(--color-ink)]/60">
-          About you
+          Om deg
         </h2>
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label className="block">
-            <span className="label">First name</span>
+            <span className="label">Fornavn</span>
             <input
               required
               maxLength={40}
@@ -101,7 +101,7 @@ export function JoinForm() {
             />
           </label>
           <label className="block">
-            <span className="label">Last name</span>
+            <span className="label">Etternavn</span>
             <input
               required
               maxLength={40}
@@ -111,7 +111,7 @@ export function JoinForm() {
             />
           </label>
           <label className="block">
-            <span className="label">Email</span>
+            <span className="label">E-post</span>
             <input
               required
               type="email"
@@ -121,11 +121,11 @@ export function JoinForm() {
             />
           </label>
           <label className="block">
-            <span className="label">Nickname (optional)</span>
+            <span className="label">Kallenavn (valgfritt)</span>
             <input
               className="input"
               maxLength={40}
-              placeholder="What should we call you?"
+              placeholder="Hva skal vi kalle deg?"
               value={form.nickname}
               onChange={(e) => update({ nickname: e.target.value })}
             />
@@ -133,12 +133,12 @@ export function JoinForm() {
         </div>
 
         <label className="mt-3 block">
-          <span className="label">About you (optional)</span>
+          <span className="label">Om deg (valgfritt)</span>
           <textarea
             rows={2}
             className="input"
             maxLength={500}
-            placeholder="A quick brag, claim or warning…"
+            placeholder="Et kjapt skryt, en påstand eller advarsel…"
             value={form.bio}
             onChange={(e) => update({ bio: e.target.value })}
           />
@@ -147,10 +147,10 @@ export function JoinForm() {
 
       <div className="card p-5 md:p-6">
         <h2 className="text-xs font-extrabold uppercase tracking-widest text-[var(--color-ink)]/60">
-          Skill level per sport
+          Ferdighetsnivå per idrett
         </h2>
         <p className="mt-1 text-sm text-[var(--color-ink)]/70">
-          Be honest — we use this to put together balanced teams.
+          Vær ærlig — vi bruker dette til å sette sammen balanserte lag.
         </p>
         <div className="mt-4 space-y-3">
           {SPORTS.map((s) => (
@@ -181,11 +181,11 @@ export function JoinForm() {
         disabled={submitting}
         className="btn btn-primary w-full disabled:opacity-50"
       >
-        {submitting ? "Signing up…" : "Sign up →"}
+        {submitting ? "Melder på…" : "Meld på →"}
       </button>
       <p className="text-center text-xs text-[var(--color-ink)]/60">
-        By signing up you agree to play hard, lose graciously, and confirm your
-        opponents&apos; scores honestly.
+        Ved å melde deg på samtykker du i å spille hardt, tape verdig og bekrefte
+        motstandernes poeng ærlig.
       </p>
     </form>
   );

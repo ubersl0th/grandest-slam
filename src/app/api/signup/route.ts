@@ -30,7 +30,7 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           error: "duplicate_pending",
-          message: "There's already a pending sign-up for that email.",
+          message: "Det finnes allerede en avventende påmelding for denne e-postadressen.",
         },
         { status: 409 },
       );

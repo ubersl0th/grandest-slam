@@ -32,16 +32,16 @@ export function AppShell({ user, children, active }: Props) {
           </Link>
           <nav className="hidden items-center gap-1 md:flex">
             <NavLink href="/leaderboard" active={active === "leaderboard"}>
-              Leaderboard
+              Resultatliste
             </NavLink>
             {user?.profile && (
               <NavLink href="/matches" active={active === "matches"}>
-                Matches
+                Kamper
               </NavLink>
             )}
             {user?.profile && (
               <NavLink href="/dashboard" active={active === "dashboard"}>
-                My team
+                Mitt lag
               </NavLink>
             )}
             {showAdmin && (
@@ -57,12 +57,12 @@ export function AppShell({ user, children, active }: Props) {
                   type="submit"
                   className="rounded-full px-3 py-1.5 text-xs font-bold opacity-70 hover:opacity-100"
                 >
-                  Sign out
+                  Logg ut
                 </button>
               </form>
             ) : (
               <Link href="/auth/sign-in" className="btn btn-secondary !py-2 !px-4 !text-sm">
-                Sign in
+                Logg inn
               </Link>
             )}
           </div>
@@ -73,13 +73,13 @@ export function AppShell({ user, children, active }: Props) {
 
       {/* Mobile bottom nav */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 grid grid-cols-4 border-t-2 border-[var(--color-ink)] bg-[var(--color-cream-50)] md:hidden">
-        <BottomNavLink href="/leaderboard" active={active === "leaderboard"} icon="🏆" label="Board" />
-        <BottomNavLink href="/matches" active={active === "matches"} icon="🎾" label="Matches" />
-        <BottomNavLink href="/dashboard" active={active === "dashboard"} icon="👥" label="Team" />
+        <BottomNavLink href="/leaderboard" active={active === "leaderboard"} icon="🏆" label="Liste" />
+        <BottomNavLink href="/matches" active={active === "matches"} icon="🎾" label="Kamper" />
+        <BottomNavLink href="/dashboard" active={active === "dashboard"} icon="👥" label="Lag" />
         {showAdmin ? (
           <BottomNavLink href="/admin" active={active === "admin"} icon="⚙️" label="Admin" />
         ) : (
-          <BottomNavLink href="/" active={false} icon="🏠" label="Home" />
+          <BottomNavLink href="/" active={false} icon="🏠" label="Hjem" />
         )}
       </nav>
     </div>

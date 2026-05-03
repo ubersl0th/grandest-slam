@@ -32,11 +32,11 @@ type RawFlight = {
 };
 
 const tabs: { key: "all" | "mine" | Sport; label: string }[] = [
-  { key: "all", label: "All" },
-  { key: "mine", label: "My team" },
+  { key: "all", label: "Alle" },
+  { key: "mine", label: "Mitt lag" },
   { key: "padel", label: "Padel" },
   { key: "tennis", label: "Tennis" },
-  { key: "disc_golf", label: "Disc Golf" },
+  { key: "disc_golf", label: "Frisbeegolf" },
   { key: "golf", label: "Golf" },
 ];
 
@@ -132,17 +132,17 @@ export function MatchesView({
                 </p>
                 {m.status === "confirmed" && (
                   <p className="text-xs text-[var(--color-ink)]/60">
-                    Final: {m.score_a}–{m.score_b}
+                    Sluttresultat: {m.score_a}–{m.score_b}
                   </p>
                 )}
                 {m.status === "pending" && (
                   <p className="text-xs text-[var(--color-ink)]/60">
-                    Submitted: {m.score_a}–{m.score_b}
+                    Innsendt: {m.score_a}–{m.score_b}
                   </p>
                 )}
               </div>
               <span className="rounded-full border-2 border-[var(--color-ink)] bg-[var(--color-cream-50)] px-2 py-1 text-[10px] font-black uppercase">
-                Open
+                Åpne
               </span>
             </Link>
           </li>
@@ -160,24 +160,24 @@ export function MatchesView({
                 </p>
                 {f.status === "confirmed" && (
                   <p className="text-xs text-[var(--color-ink)]/60">
-                    Strokes: {f.strokes_1}–{f.strokes_2}
+                    Slag: {f.strokes_1}–{f.strokes_2}
                   </p>
                 )}
                 {f.status === "pending" && (
                   <p className="text-xs text-[var(--color-ink)]/60">
-                    Submitted: {f.strokes_1}–{f.strokes_2}
+                    Innsendt: {f.strokes_1}–{f.strokes_2}
                   </p>
                 )}
               </div>
               <span className="rounded-full border-2 border-[var(--color-ink)] bg-[var(--color-cream-50)] px-2 py-1 text-[10px] font-black uppercase">
-                Open
+                Åpne
               </span>
             </Link>
           </li>
         ))}
         {filteredMatches.length === 0 && filteredFlights.length === 0 && (
           <li className="card p-6 text-center text-[var(--color-ink)]/60">
-            Nothing here yet.
+            Ingenting her enda.
           </li>
         )}
       </ul>
