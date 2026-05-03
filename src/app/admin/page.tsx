@@ -52,7 +52,7 @@ export default async function AdminPage() {
           Admin
         </h1>
         <p className="mt-2 text-[var(--color-ink)]/75">
-          Manage the tournament, teams and results.
+          Administrer turneringen, lagene og resultatene.
         </p>
         <AdminConsole
           isSuperAdmin={user.profile?.role === "super_admin"}

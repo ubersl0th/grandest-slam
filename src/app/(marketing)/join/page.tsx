@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { JoinForm } from "./join-form";
 
-export const metadata = { title: "Sign up · The Grandest Slam" };
+export const metadata = { title: "Meld på · The Grandest Slam" };
 
 export default function JoinPage() {
   return (
@@ -11,19 +11,19 @@ export default function JoinPage() {
           href="/"
           className="text-sm font-bold opacity-70 hover:opacity-100"
         >
-          ← Back home
+          ← Tilbake til forsiden
         </Link>
         <h1
           className="mt-6 text-4xl md:text-6xl"
           style={{ fontFamily: "var(--font-display)" }}
         >
-          <span className="text-[var(--color-terracotta)]">Sign up</span>
+          <span className="text-[var(--color-terracotta)]">Meld deg på</span>
           <br />
-          for the slam
+          slammet
         </h1>
         <p className="mt-3 max-w-md text-[var(--color-ink)]/75">
-          Four sports, one weekend. Sign up as an individual — admins will pair
-          everyone into balanced teams of two and email you a magic link.
+          Fire idretter, én helg. Meld deg på som enkeltperson — administratorene
+          setter sammen balanserte lag på to og sender deg en magisk lenke på e-post.
         </p>
 
         <JoinForm />

@@ -36,11 +36,11 @@ export default async function FlightDetailPage({
     <AppShell user={user} active="matches">
       <div className="mx-auto max-w-2xl px-4 py-6 md:py-10">
         <Link href="/matches" className="text-sm font-bold opacity-70 hover:opacity-100">
-          ← All matches
+          ← Alle kamper
         </Link>
         <div className="mt-4">
           <p className="tag">
-            {sportEmoji(f.sport)} {sportLabel(f.sport)} · Round {f.round_number}
+            {sportEmoji(f.sport)} {sportLabel(f.sport)} · Runde {f.round_number}
           </p>
           <h1 className="mt-3 text-3xl md:text-4xl" style={{ fontFamily: "var(--font-display)" }}>
             <Link href={`/teams/${f.team_1}`} className="hover:underline">{teamName(f.t1)}</Link>
@@ -48,7 +48,7 @@ export default async function FlightDetailPage({
             <Link href={`/teams/${f.team_2}`} className="hover:underline">{teamName(f.t2)}</Link>
           </h1>
           <p className="mt-2 text-sm text-[var(--color-ink)]/65">
-            Best ball / best disc — one stroke score per team.
+            Beste ball / beste disk — én slagscore per lag.
           </p>
         </div>
 

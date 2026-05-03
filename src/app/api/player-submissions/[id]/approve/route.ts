@@ -60,7 +60,7 @@ export async function POST(
   const sub = submission as SubmissionRow;
   if (sub.status !== "pending") {
     return NextResponse.json(
-      { error: "already_reviewed", message: `Submission already ${sub.status}.` },
+      { error: "already_reviewed", message: `Påmeldingen er allerede ${sub.status === "approved" ? "godkjent" : "avvist"}.` },
       { status: 409 },
     );
   }
@@ -110,7 +110,7 @@ export async function POST(
   }
   if (!userId) {
     return NextResponse.json(
-      { error: "auth_invite_no_user", message: "Auth provider returned no user." },
+      { error: "auth_invite_no_user", message: "Autentiseringsleverandøren returnerte ingen bruker." },
       { status: 500 },
     );
   }

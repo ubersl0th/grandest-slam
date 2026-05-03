@@ -9,7 +9,7 @@ export default function LandingPage() {
         <Header />
 
         <div className="mx-auto mt-10 max-w-5xl text-center">
-          <p className="tag mx-auto mb-6">Summer 2026 · Teams of two</p>
+          <p className="tag mx-auto mb-6">Sommer 2026 · Lag på to</p>
 
           <h1
             style={{ fontFamily: "var(--font-display)" }}
@@ -32,16 +32,16 @@ export default function LandingPage() {
           </div>
 
           <p className="mx-auto mt-8 max-w-xl text-lg md:text-xl text-[var(--color-ink)]/85">
-            Four sports. One champion. Padel, Tennis, Disc Golf and Golf —
-            played in teams of two over one unforgettable weekend.
+            Fire idretter. Én mester. Padel, Tennis, Frisbeegolf og Golf —
+            spilt i lag på to over én uforglemmelig helg.
           </p>
 
           <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:justify-center sm:gap-4">
             <Link href="/join" className="btn btn-primary">
-              Sign up your team →
+              Meld deg på →
             </Link>
             <Link href="/leaderboard" className="btn btn-tertiary">
-              Live leaderboard
+              Live resultatliste
             </Link>
           </div>
         </div>
@@ -58,7 +58,7 @@ export default function LandingPage() {
             >
               <span>★ PADEL</span>
               <span>★ TENNIS</span>
-              <span>★ DISC GOLF</span>
+              <span>★ FRISBEEGOLF</span>
               <span>★ GOLF</span>
             </div>
           ))}
@@ -72,34 +72,34 @@ export default function LandingPage() {
             className="mb-10 text-center text-3xl md:text-5xl"
             style={{ fontFamily: "var(--font-display)" }}
           >
-            Four arenas, one trophy
+            Fire arenaer, ett trofé
           </h2>
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
             <SportCard
               title="Padel"
-              tag="Round Robin"
-              points="1pt per win"
+              tag="Serieturnering"
+              points="1p per seier"
               accent="var(--color-terracotta)"
               emoji="🎾"
             />
             <SportCard
               title="Tennis"
-              tag="Round Robin"
-              points="1pt per win"
+              tag="Serieturnering"
+              points="1p per seier"
               accent="var(--color-mustard)"
               emoji="🎾"
             />
             <SportCard
-              title="Disc Golf"
-              tag="Stroke play · best disc"
-              points="N → 1 pts by ranking"
+              title="Frisbeegolf"
+              tag="Slagspill · beste disk"
+              points="N → 1 p etter rangering"
               accent="var(--color-teal)"
               emoji="🥏"
             />
             <SportCard
               title="Golf"
-              tag="Stroke play · best ball"
-              points="N → 1 pts by ranking"
+              tag="Slagspill · beste ball"
+              points="N → 1 p etter rangering"
               accent="var(--color-plum)"
               emoji="⛳️"
             />
@@ -114,23 +114,23 @@ export default function LandingPage() {
             className="mb-12 text-center text-3xl md:text-5xl"
             style={{ fontFamily: "var(--font-display)" }}
           >
-            How it works
+            Slik fungerer det
           </h2>
           <ol className="grid grid-cols-1 gap-5 md:grid-cols-3">
             <Step
               n={1}
-              title="Grab a partner"
-              body="Recruit your other half. Pick a name worth printing on a trophy."
+              title="Meld deg på"
+              body="Fyll inn navn, e-post og ferdighetsnivå. Ferdig på 60 sekunder."
             />
             <Step
               n={2}
-              title="Sign up your team"
-              body="Two emails, four experience levels, one bio. Done in 60 seconds."
+              title="Bli paret med en makker"
+              body="Administratorene setter sammen balanserte lag på to og sender deg en magisk lenke."
             />
             <Step
               n={3}
-              title="Play. Submit. Confirm."
-              body="Submit scores from your phone. Opponents tap to confirm. Leaderboard moves live."
+              title="Spill. Send inn. Bekreft."
+              body="Send inn poeng fra mobilen. Motstanderne bekrefter med ett trykk. Resultatlisten oppdateres direkte."
             />
           </ol>
         </div>
@@ -142,13 +142,13 @@ export default function LandingPage() {
           className="text-4xl md:text-6xl"
           style={{ fontFamily: "var(--font-display)" }}
         >
-          Ready to slam?
+          Klar til å slamme?
         </h2>
         <p className="mx-auto mt-4 max-w-md text-lg text-[var(--color-ink)]/80">
-          Lock in your team while spots remain.
+          Sikre plassen din før det er fullt.
         </p>
         <Link href="/join" className="btn btn-primary mt-8">
-          Sign up your team →
+          Meld deg på →
         </Link>
       </section>
 
@@ -187,10 +187,10 @@ function Header() {
           href="/leaderboard"
           className="hidden rounded-full px-3 py-2 text-sm font-bold sm:inline"
         >
-          Leaderboard
+          Resultatliste
         </Link>
         <Link href="/join" className="btn btn-secondary !py-2 !px-4 !text-sm">
-          Join
+          Bli med
         </Link>
       </nav>
     </header>
@@ -260,10 +260,10 @@ function Footer() {
         </p>
         <div className="flex gap-4 text-sm">
           <Link href="/leaderboard" className="hover:opacity-80">
-            Leaderboard
+            Resultatliste
           </Link>
           <Link href="/join" className="hover:opacity-80">
-            Sign up
+            Meld på
           </Link>
         </div>
       </div>

@@ -36,9 +36,9 @@ export function SignInForm({ next }: { next?: string }) {
         >
           📬
         </div>
-        <p className="mt-4 font-bold">Check your email</p>
+        <p className="mt-4 font-bold">Sjekk e-posten din</p>
         <p className="mt-1 text-sm text-[var(--color-ink)]/70">
-          We sent a magic link to <strong>{email}</strong>.
+          Vi sendte en magisk lenke til <strong>{email}</strong>.
         </p>
       </div>
     );
@@ -47,7 +47,7 @@ export function SignInForm({ next }: { next?: string }) {
   return (
     <form onSubmit={onSubmit} className="mt-6 space-y-4">
       <label className="block">
-        <span className="label">Email</span>
+        <span className="label">E-post</span>
         <input
           required
           type="email"
@@ -55,7 +55,7 @@ export function SignInForm({ next }: { next?: string }) {
           className="input"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@example.com"
+          placeholder="du@eksempel.no"
         />
       </label>
       {error && (
@@ -68,7 +68,7 @@ export function SignInForm({ next }: { next?: string }) {
         disabled={loading}
         className="btn btn-primary w-full disabled:opacity-50"
       >
-        {loading ? "Sending…" : "Send magic link"}
+        {loading ? "Sender…" : "Send magisk lenke"}
       </button>
     </form>
   );

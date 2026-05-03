@@ -43,11 +43,11 @@ export function FlightPanel({ flight, viewer }: Props) {
 
   async function submit() {
     if (s1 === "" || s2 === "") {
-      setError("Enter both stroke counts.");
+      setError("Skriv inn antall slag for begge lag.");
       return;
     }
     if (s1 <= 0 || s2 <= 0) {
-      setError("Strokes must be positive.");
+      setError("Antall slag må være positivt.");
       return;
     }
     setError(null);
@@ -73,7 +73,7 @@ export function FlightPanel({ flight, viewer }: Props) {
   }
 
   async function dispute() {
-    const reason = window.prompt("What's wrong with the submitted strokes?");
+    const reason = window.prompt("Hva er galt med de innsendte slagene?");
     if (reason === null) return;
     setBusy(true);
     setError(null);
@@ -92,7 +92,7 @@ export function FlightPanel({ flight, viewer }: Props) {
 
       <div className="card p-5">
         <h2 className="text-xs font-extrabold uppercase tracking-widest text-[var(--color-ink)]/60">
-          Strokes (lower wins)
+          Slag (lavest vinner)
         </h2>
         <div className="mt-3 grid grid-cols-2 gap-3">
           <Side
@@ -110,10 +110,10 @@ export function FlightPanel({ flight, viewer }: Props) {
         </div>
         {canEdit && (
           <label className="mt-4 block">
-            <span className="label">Notes (optional)</span>
+            <span className="label">Notater (valgfritt)</span>
             <input
               className="input"
-              placeholder="e.g. lost ball on hole 7"
+              placeholder="f.eks. mistet ball på hull 7"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
@@ -126,28 +126,28 @@ export function FlightPanel({ flight, viewer }: Props) {
         <div className="mt-4 flex flex-col gap-2 sm:flex-row">
           {canEdit && flight.status !== "pending" && viewer.isParticipant && (
             <button onClick={submit} disabled={busy} className="btn btn-primary flex-1 disabled:opacity-50">
-              {busy ? "Submitting…" : "Submit strokes"}
+              {busy ? "Sender…" : "Send inn slag"}
             </button>
           )}
           {canEdit && flight.status === "pending" && viewer.submittedByMyTeam && (
             <button onClick={submit} disabled={busy} className="btn btn-secondary flex-1 disabled:opacity-50">
-              {busy ? "Updating…" : "Update strokes"}
+              {busy ? "Oppdaterer…" : "Oppdater slag"}
             </button>
           )}
           {showConfirm && (
             <>
               <button onClick={confirm} disabled={busy} className="btn btn-tertiary flex-1 disabled:opacity-50">
-                {busy ? "Confirming…" : "Confirm strokes ✓"}
+                {busy ? "Bekrefter…" : "Bekreft slag ✓"}
               </button>
               <button onClick={dispute} disabled={busy} className="btn btn-secondary flex-1 disabled:opacity-50">
-                Dispute
+                Bestrid
               </button>
             </>
           )}
           {flight.status === "confirmed" && viewer.isAdmin && (
             <button
               onClick={async () => {
-                if (!window.confirm("Reopen this flight? Strokes will be reset.")) return;
+                if (!window.confirm("Gjenåpne denne runden? Slagene tilbakestilles.")) return;
                 setBusy(true);
                 await supabase
                   .from("flights")
@@ -158,15 +158,15 @@ export function FlightPanel({ flight, viewer }: Props) {
               }}
               className="btn btn-secondary flex-1"
             >
-              Admin: reopen
+              Admin: gjenåpne
             </button>
           )}
         </div>
       </div>
 
       <p className="text-center text-xs text-[var(--color-ink)]/55">
-        Best ball / best disc: take the lower stroke between the two players on each team for every
-        hole. Submit the team total when the round is done.
+        Beste ball / beste disk: ta det laveste slaget mellom de to spillerne på hvert lag for hvert
+        hull. Send inn lagets totalsum når runden er ferdig.
       </p>
     </div>
   );
@@ -176,7 +176,7 @@ function StatusBanner({ flight, viewer }: Props) {
   if (flight.status === "confirmed") {
     return (
       <div className="card border-[var(--color-teal)] bg-[var(--color-teal)]/10 p-4">
-        <p className="text-sm font-bold text-[var(--color-teal-dark)]">✓ Final strokes confirmed</p>
+        <p className="text-sm font-bold text-[var(--color-teal-dark)]">✓ Endelige slag bekreftet</p>
       </div>
     );
   }
@@ -184,7 +184,7 @@ function StatusBanner({ flight, viewer }: Props) {
     if (viewer.submittedByMyTeam) {
       return (
         <div className="card border-[var(--color-mustard)] bg-[var(--color-mustard)]/20 p-4">
-          <p className="text-sm font-bold">⏳ Waiting for the other team to confirm.</p>
+          <p className="text-sm font-bold">⏳ Venter på at det andre laget bekrefter.</p>
         </div>
       );
     }
@@ -192,14 +192,14 @@ function StatusBanner({ flight, viewer }: Props) {
       return (
         <div className="card border-[var(--color-mustard)] bg-[var(--color-mustard)]/20 p-4">
           <p className="text-sm font-bold">
-            👋 {flight.submitter_name ?? "The other team"} submitted strokes. Confirm or dispute below.
+            👋 {flight.submitter_name ?? "Det andre laget"} sendte inn slag. Bekreft eller bestrid nedenfor.
           </p>
         </div>
       );
     }
     return (
       <div className="card p-4">
-        <p className="text-sm">Awaiting opponent confirmation.</p>
+        <p className="text-sm">Venter på bekreftelse fra motstanderen.</p>
       </div>
     );
   }
@@ -207,14 +207,14 @@ function StatusBanner({ flight, viewer }: Props) {
     return (
       <div className="card border-[var(--color-terracotta)] bg-[var(--color-terracotta)]/10 p-4">
         <p className="text-sm font-bold text-[var(--color-terracotta-dark)]">
-          ⚠️ Disputed — admin needs to resolve.
+          ⚠️ Bestridt — administrator må løse dette.
         </p>
       </div>
     );
   }
   return (
     <div className="card p-4">
-      <p className="text-sm">Round not played yet.</p>
+      <p className="text-sm">Runden er ikke spilt enda.</p>
     </div>
   );
 }

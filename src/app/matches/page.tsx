@@ -4,7 +4,7 @@ import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { MatchesView } from "./matches-view";
 
-export const metadata = { title: "Matches · The Grandest Slam" };
+export const metadata = { title: "Kamper · The Grandest Slam" };
 export const revalidate = 0;
 
 export default async function MatchesPage() {
@@ -32,10 +32,10 @@ export default async function MatchesPage() {
           className="text-3xl md:text-5xl"
           style={{ fontFamily: "var(--font-display)" }}
         >
-          Matches
+          Kamper
         </h1>
         <p className="mt-2 text-[var(--color-ink)]/75">
-          Submit a result. Tap a row to confirm or contest.
+          Send inn et resultat. Trykk på en rad for å bekrefte eller bestride.
         </p>
         <MatchesView
           initialMatches={matches ?? []}
