@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
-import type { TeamTotals, Sport } from "@/lib/database.types";
+import type { Sport, TeamTotals } from "@/lib/database.types";
 import { SPORTS, sportEmoji, sportLabel } from "@/lib/sports";
+import { createClient } from "@/lib/supabase/client";
 
 type Tab = "overall" | Sport;
 
@@ -28,9 +28,21 @@ export function Leaderboard({ initial }: { initial: TeamTotals[] }) {
     }
     const channel = supabase
       .channel("leaderboard")
-      .on("postgres_changes", { event: "*", schema: "public", table: "matches" }, refresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "flights" }, refresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "teams" }, refresh)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "matches" },
+        refresh,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "flights" },
+        refresh,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "teams" },
+        refresh,
+      )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
@@ -53,7 +65,11 @@ export function Leaderboard({ initial }: { initial: TeamTotals[] }) {
 
   const tabs: { key: Tab; label: string; emoji?: string }[] = [
     { key: "overall", label: "Totalt", emoji: "🏆" },
-    ...SPORTS.map((s) => ({ key: s.key as Tab, label: s.label, emoji: s.emoji })),
+    ...SPORTS.map((s) => ({
+      key: s.key as Tab,
+      label: s.label,
+      emoji: s.emoji,
+    })),
   ];
 
   return (
@@ -61,12 +77,13 @@ export function Leaderboard({ initial }: { initial: TeamTotals[] }) {
       <div className="flex flex-wrap gap-2 overflow-x-auto pb-2 -mx-1 px-1">
         {tabs.map((t) => (
           <button
+            type="button"
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`rounded-full border-2 border-[var(--color-ink)] px-4 py-1.5 text-sm font-bold transition shrink-0 ${
+            className={`rounded-full border-2 border-ink px-4 py-1.5 text-sm font-bold transition shrink-0 ${
               tab === t.key
-                ? "bg-[var(--color-ink)] text-[var(--color-cream)]"
-                : "bg-[var(--color-cream-50)] hover:bg-[var(--color-cream-200)]"
+                ? "bg-ink text-cream"
+                : "bg-cream-50 hover:bg-cream-200"
             }`}
           >
             <span className="mr-1.5" aria-hidden>
@@ -78,7 +95,7 @@ export function Leaderboard({ initial }: { initial: TeamTotals[] }) {
       </div>
 
       <div
-        className={`mt-4 transition-shadow ${pulse ? "ring-4 ring-[var(--color-mustard)] rounded-2xl" : ""}`}
+        className={`mt-4 transition-shadow ${pulse ? "ring-4 ring-mustard rounded-2xl" : ""}`}
       >
         <ol className="space-y-2">
           {sorted.map((row, i) => {
@@ -96,24 +113,25 @@ export function Leaderboard({ initial }: { initial: TeamTotals[] }) {
               <li key={row.team_id}>
                 <Link
                   href={`/teams/${row.team_id}`}
-                  className="card flex items-center gap-3 p-3 md:p-4 hover:translate-y-[-1px] transition-transform"
+                  className="card flex items-center gap-3 p-3 md:p-4 hover:-translate-y-px transition-transform"
                 >
                   <Rank pos={i + 1} />
                   <div className="flex-1 min-w-0">
                     <p className="truncate font-extrabold">{row.team_name}</p>
                     {tab === "overall" && (
-                      <p className="text-xs text-[var(--color-ink)]/60">
-                        Padel {row.padel_points} · Tennis {row.tennis_points} · Frisbee {row.disc_golf_points} · Golf {row.golf_points}
+                      <p className="text-xs text-ink/60">
+                        Padel {row.padel_points} · Tennis {row.tennis_points} ·
+                        Frisbee {row.disc_golf_points} · Golf {row.golf_points}
                       </p>
                     )}
                     {tab !== "overall" && (
-                      <p className="text-xs text-[var(--color-ink)]/60">
+                      <p className="text-xs text-ink/60">
                         {sportEmoji(tab)} {sportLabel(tab)}
                       </p>
                     )}
                   </div>
                   <div
-                    className="grid h-12 min-w-12 place-items-center rounded-xl border-2 border-[var(--color-ink)] bg-[var(--color-mustard)] px-3 text-xl font-black"
+                    className="grid h-12 min-w-12 place-items-center rounded-xl border-2 border-ink bg-mustard px-3 text-xl font-black"
                     style={{ fontFamily: "var(--font-display)" }}
                   >
                     {points}
@@ -123,7 +141,7 @@ export function Leaderboard({ initial }: { initial: TeamTotals[] }) {
             );
           })}
           {sorted.length === 0 && (
-            <li className="card p-8 text-center text-[var(--color-ink)]/60">
+            <li className="card p-8 text-center text-ink/60">
               Ingen lag enda.
             </li>
           )}
@@ -136,15 +154,15 @@ export function Leaderboard({ initial }: { initial: TeamTotals[] }) {
 function Rank({ pos }: { pos: number }) {
   const styles =
     pos === 1
-      ? "bg-[var(--color-mustard)]"
+      ? "bg-mustard"
       : pos === 2
-        ? "bg-[var(--color-cream-200)]"
+        ? "bg-cream-200"
         : pos === 3
-          ? "bg-[var(--color-terracotta)] text-[var(--color-cream)]"
-          : "bg-[var(--color-cream-50)]";
+          ? "bg-terracotta text-cream"
+          : "bg-cream-50";
   return (
     <div
-      className={`grid h-10 w-10 place-items-center rounded-full border-2 border-[var(--color-ink)] text-base font-black ${styles}`}
+      className={`grid h-10 w-10 place-items-center rounded-full border-2 border-ink text-base font-black ${styles}`}
       style={{ fontFamily: "var(--font-display)" }}
     >
       {pos}

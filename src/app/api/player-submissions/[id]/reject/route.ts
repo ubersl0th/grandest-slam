@@ -4,20 +4,23 @@ import { createClient } from "@/lib/supabase/server";
 export const runtime = "nodejs";
 
 export async function POST(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> },
+	req: Request,
+	{ params }: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await params;
-  const body = await req.json().catch(() => ({}));
-  const reason = typeof body?.reason === "string" ? body.reason : null;
+	const { id } = await params;
+	const body = await req.json().catch(() => ({}));
+	const reason = typeof body?.reason === "string" ? body.reason : null;
 
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("reject_player_submission", {
-    p_submission_id: id,
-    p_reason: reason,
-  });
-  if (error) {
-    return NextResponse.json({ error: "reject", message: error.message }, { status: 400 });
-  }
-  return NextResponse.json({ ok: true });
+	const supabase = await createClient();
+	const { error } = await supabase.rpc("reject_player_submission", {
+		p_submission_id: id,
+		p_reason: reason,
+	});
+	if (error) {
+		return NextResponse.json(
+			{ error: "reject", message: error.message },
+			{ status: 400 },
+		);
+	}
+	return NextResponse.json({ ok: true });
 }
