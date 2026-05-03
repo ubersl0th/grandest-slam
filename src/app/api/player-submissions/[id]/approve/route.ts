@@ -75,12 +75,12 @@ export async function POST(
 	const adminAuth = createServiceClient();
 	const origin = new URL(req.url).origin;
 	const email = sub.email.toLowerCase();
-	const fullName = `${sub.first_name} ${sub.last_name}`.trim();
 	let userId: string | undefined;
 
 	const invite = await adminAuth.auth.admin.inviteUserByEmail(email, {
 		data: {
-			full_name: fullName,
+			first_name: sub.first_name,
+			last_name: sub.last_name,
 			nickname: sub.nickname ?? "",
 			bio: sub.bio ?? "",
 		},
@@ -124,12 +124,13 @@ export async function POST(
 		);
 	}
 
-	// 4. Make sure the profile reflects nickname/bio/full_name even if the
+	// 4. Make sure the profile reflects nickname/bio/name even if the
 	//    handle_new_user trigger ran earlier (e.g. existing user re-invited).
 	const { error: profileErr } = await supabase
 		.from("profiles")
 		.update({
-			full_name: fullName,
+			first_name: sub.first_name,
+			last_name: sub.last_name,
 			nickname: sub.nickname,
 			bio: sub.bio,
 		})

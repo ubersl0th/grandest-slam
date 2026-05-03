@@ -48,13 +48,14 @@ export default function LandingPage() {
 			</section>
 
 			{/* Sports strip */}
-			<section className="border-y-2 border-ink bg-in] py-6 overflow-hidden">
-				<div className="flex animate-[marquee_30s_linear_infinite] whitespace-nowrap gap-12 text-cream">
-					{Array.from({ length: 4 }).map((_, i) => (
+			<section className="border-y-2 border-ink bg-ink py-6 overflow-hidden">
+				<div className="flex w-max animate-[marquee_30s_linear_infinite] whitespace-nowrap text-cream">
+					{Array.from({ length: 2 }).map((_, i) => (
 						<div
 							// biome-ignore lint/suspicious/noArrayIndexKey: only cosmetic element
 							key={i}
-							className="flex shrink-0 items-center gap-12 text-2xl md:text-3xl font-black tracking-widest"
+							aria-hidden={i === 1}
+							className="flex shrink-0 items-center gap-12 pr-12 text-2xl md:text-3xl font-black tracking-widest"
 							style={{ fontFamily: "var(--font-display)" }}
 						>
 							<span>★ PADEL</span>
@@ -79,6 +80,7 @@ export default function LandingPage() {
 						<SportCard
 							title="Padel"
 							tag="Serieturnering"
+							tagTooltip="Alle par møter alle andre par i én kamp hver. Vinnerlaget får 1 poeng per kamp."
 							points="1p per seier"
 							accent="var(--color-terracotta)"
 							emoji="🎾"
@@ -86,6 +88,7 @@ export default function LandingPage() {
 						<SportCard
 							title="Tennis"
 							tag="Serieturnering"
+							tagTooltip="Alle par møter alle andre par i én kamp hver. Vinnerlaget får 1 poeng per kamp."
 							points="1p per seier"
 							accent="var(--color-mustard)"
 							emoji="🎾"
@@ -93,6 +96,7 @@ export default function LandingPage() {
 						<SportCard
 							title="Frisbeegolf"
 							tag="Slagspill · beste disk"
+							tagTooltip="Hvert par spiller én runde og teller den beste disken per hull. Lagene rangeres på total score: best får N poeng, dårligst 1. Hvor N er antall lag."
 							points="N → 1 p etter rangering"
 							accent="var(--color-teal)"
 							emoji="🥏"
@@ -100,6 +104,7 @@ export default function LandingPage() {
 						<SportCard
 							title="Golf"
 							tag="Slagspill · beste ball"
+							tagTooltip="Hvert par spiller én runde og teller det beste slaget per hull. Lagene rangeres på total score: best får N poeng, dårligst 1. Hvor N er antall lag."
 							points="N → 1 p etter rangering"
 							accent="var(--color-plum)"
 							emoji="⛳️"
@@ -190,7 +195,10 @@ function Header() {
 				>
 					Resultatliste
 				</Link>
-				<Link href="/join" className="btn btn-secondary py-2 px-4 text-sm">
+				<Link
+					href="/join"
+					className="btn btn-secondary py-2 px-4 text-sm whitespace-nowrap"
+				>
 					Bli med
 				</Link>
 			</nav>
@@ -201,12 +209,14 @@ function Header() {
 function SportCard({
 	title,
 	tag,
+	tagTooltip,
 	points,
 	accent,
 	emoji,
 }: {
 	title: string;
 	tag: string;
+	tagTooltip: string;
 	points: string;
 	accent: string;
 	emoji: string;
@@ -215,7 +225,10 @@ function SportCard({
 		<div className="card relative p-6 md:p-8">
 			<div className="flex items-start justify-between">
 				<div>
-					<div className="tag">{tag}</div>
+					<span className="tag">
+						{tag}
+						<TagTooltip text={tagTooltip} />
+					</span>
 					<h3
 						className="mt-3 text-3xl md:text-4xl"
 						style={{ fontFamily: "var(--font-display)" }}
@@ -232,6 +245,26 @@ function SportCard({
 				</div>
 			</div>
 		</div>
+	);
+}
+
+function TagTooltip({ text }: { text: string }) {
+	return (
+		<span className="group relative -mr-1 inline-flex">
+			<button
+				type="button"
+				aria-label={text}
+				className="grid h-4 w-4 cursor-help place-items-center rounded-full border-2 border-ink bg-ink text-[0.55rem] font-black leading-none text-cream"
+			>
+				?
+			</button>
+			<span
+				role="tooltip"
+				className="pointer-events-none absolute top-full left-1/2 z-20 mt-2 w-56 -translate-x-1/2 rounded-xl border-2 border-ink bg-cream-50 px-3 py-2 text-[0.7rem] font-semibold leading-snug tracking-normal text-ink normal-case opacity-0 shadow-[3px_3px_0_var(--color-ink)] transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
+			>
+				{text}
+			</span>
+		</span>
 	);
 }
 
