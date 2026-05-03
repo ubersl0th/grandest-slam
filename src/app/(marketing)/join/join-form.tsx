@@ -153,6 +153,18 @@ export function JoinForm() {
 				<p className="mt-1 text-sm text-[var(--color-ink)]/70">
 					Vær ærlig — vi bruker dette til å sette sammen balanserte lag.
 				</p>
+				<dl className="mt-4 grid grid-cols-1 gap-2 rounded-2xl border-2 border-dashed border-[var(--color-ink)]/30 p-3 sm:grid-cols-3">
+					{EXPERIENCE_LEVELS.map((l) => (
+						<div key={l.key}>
+							<dt className="text-xs font-extrabold uppercase tracking-wide text-[var(--color-ink)]">
+								{l.label}
+							</dt>
+							<dd className="mt-1 text-xs leading-snug text-[var(--color-ink)]/75">
+								{l.description}
+							</dd>
+						</div>
+					))}
+				</dl>
 				<div className="mt-4 space-y-3">
 					{SPORTS.map((s) => (
 						<ExperiencePicker

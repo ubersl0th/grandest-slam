@@ -27,6 +27,8 @@ export type PlayerSubmission = {
 export type Profile = {
 	id: string;
 	email: string;
+	first_name: string;
+	last_name: string | null;
 	full_name: string;
 	nickname: string | null;
 	bio: string | null;
@@ -123,7 +125,7 @@ export type Database = {
 		Tables: {
 			profiles: Tbl<
 				Profile,
-				Partial<Profile> & { id: string; email: string; full_name: string }
+				Partial<Profile> & { id: string; email: string; first_name: string }
 			>;
 			teams: Tbl<Team, Partial<Team> & { name: string }>;
 			team_members: Tbl<TeamMember, TeamMember>;

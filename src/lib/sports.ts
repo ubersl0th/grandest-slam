@@ -7,10 +7,29 @@ export const SPORTS: { key: Sport; label: string; emoji: string }[] = [
 	{ key: "golf", label: "Golf", emoji: "⛳️" },
 ];
 
-export const EXPERIENCE_LEVELS: { key: ExperienceLevel; label: string }[] = [
-	{ key: "beginner", label: "Nybegynner" },
-	{ key: "intermediate", label: "Middels" },
-	{ key: "advanced", label: "Avansert" },
+export const EXPERIENCE_LEVELS: {
+	key: ExperienceLevel;
+	label: string;
+	description: string;
+}[] = [
+	{
+		key: "beginner",
+		label: "Nybegynner",
+		description:
+			"Har spilt lite eller aldri før. Kan reglene, men teknikk og taktikk sitter ikke ennå.",
+	},
+	{
+		key: "intermediate",
+		label: "Middels",
+		description:
+			"Spiller jevnlig og har grunnleggende teknikk på plass. Holder følge i de fleste kamper.",
+	},
+	{
+		key: "advanced",
+		label: "Avansert",
+		description:
+			"Erfaren spiller med solid teknikk og taktikk. Trener eller spiller turneringer regelmessig.",
+	},
 ];
 
 // Numeric weights used by the team-balancer. Keep aligned with EXPERIENCE_LEVELS.
