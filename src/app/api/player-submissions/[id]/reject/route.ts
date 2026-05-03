@@ -12,8 +12,7 @@ export async function POST(
   const reason = typeof body?.reason === "string" ? body.reason : null;
 
   const supabase = await createClient();
-  // Auth + admin check happens via the SECURITY DEFINER RPC, which calls is_admin().
-  const { error } = await supabase.rpc("reject_team_submission", {
+  const { error } = await supabase.rpc("reject_player_submission", {
     p_submission_id: id,
     p_reason: reason,
   });

@@ -2,29 +2,25 @@
 // This is a hand-written stub used until the local Supabase stack is running.
 
 export type Sport = "padel" | "tennis" | "disc_golf" | "golf";
-export type ExperienceLevel = "beginner" | "intermediate" | "advanced" | "pro";
+export type ExperienceLevel = "beginner" | "intermediate" | "advanced";
 export type UserRole = "player" | "admin" | "super_admin";
 export type SubmissionStatus = "pending" | "confirmed" | "disputed";
 export type TournamentStatus = "not_started" | "active" | "completed";
-export type TeamReviewStatus = "pending" | "approved" | "rejected";
+export type PlayerReviewStatus = "pending" | "approved" | "rejected";
 
-export type TeamSubmission = {
+export type PlayerSubmission = {
   id: string;
-  status: TeamReviewStatus;
-  team_name: string;
-  team_bio: string | null;
-  player_1_name: string;
-  player_1_email: string;
-  player_1_bio: string | null;
-  player_1_experience: Record<Sport, ExperienceLevel>;
-  player_2_name: string;
-  player_2_email: string;
-  player_2_bio: string | null;
-  player_2_experience: Record<Sport, ExperienceLevel>;
+  status: PlayerReviewStatus;
+  first_name: string;
+  last_name: string;
+  nickname: string | null;
+  email: string;
+  bio: string | null;
+  experience: Record<Sport, ExperienceLevel>;
   rejection_reason: string | null;
   reviewed_by: string | null;
   reviewed_at: string | null;
-  approved_team_id: string | null;
+  approved_profile_id: string | null;
   created_at: string;
 };
 
@@ -32,6 +28,7 @@ export type Profile = {
   id: string;
   email: string;
   full_name: string;
+  nickname: string | null;
   bio: string | null;
   role: UserRole;
   created_at: string;
@@ -131,6 +128,15 @@ export type Database = {
       matches: Tbl<Match, Partial<Match> & { sport: Sport; team_a: string; team_b: string }>;
       flights: Tbl<Flight, Partial<Flight> & { sport: Sport; round_number: number; team_1: string; team_2: string }>;
       tournament: Tbl<Tournament, Partial<Tournament>>;
+      player_submissions: Tbl<
+        PlayerSubmission,
+        Partial<PlayerSubmission> & {
+          first_name: string;
+          last_name: string;
+          email: string;
+          experience: Record<Sport, ExperienceLevel>;
+        }
+      >;
     };
     Views: {
       team_totals: View<TeamTotals>;
@@ -147,6 +153,10 @@ export type Database = {
       set_user_role: { Args: { p_profile_id: string; p_role: UserRole }; Returns: Profile };
       start_tournament: { Args: Record<string, never>; Returns: Tournament };
       end_tournament: { Args: Record<string, never>; Returns: Tournament };
+      reject_player_submission: {
+        Args: { p_submission_id: string; p_reason?: string | null };
+        Returns: PlayerSubmission;
+      };
     };
     Enums: {
       sport: Sport;
