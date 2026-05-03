@@ -19,11 +19,11 @@ export default function JoinPage() {
         >
           <span className="text-[var(--color-terracotta)]">Sign up</span>
           <br />
-          your team
+          for the slam
         </h1>
         <p className="mt-3 max-w-md text-[var(--color-ink)]/75">
-          Two players, four sports, one weekend. Both players will get a magic
-          link to confirm their account and submit scores.
+          Four sports, one weekend. Sign up as an individual — admins will pair
+          everyone into balanced teams of two and email you a magic link.
         </p>
 
         <JoinForm />

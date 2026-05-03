@@ -11,8 +11,14 @@ export const EXPERIENCE_LEVELS: { key: ExperienceLevel; label: string }[] = [
   { key: "beginner", label: "Beginner" },
   { key: "intermediate", label: "Intermediate" },
   { key: "advanced", label: "Advanced" },
-  { key: "pro", label: "Pro" },
 ];
+
+// Numeric weights used by the team-balancer. Keep aligned with EXPERIENCE_LEVELS.
+export const EXPERIENCE_WEIGHTS: Record<ExperienceLevel, number> = {
+  beginner: 1,
+  intermediate: 2,
+  advanced: 3,
+};
 
 export const sportLabel = (s: Sport) =>
   SPORTS.find((sp) => sp.key === s)?.label ?? s;

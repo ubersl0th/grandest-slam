@@ -7,13 +7,20 @@ import { createClient } from "@/lib/supabase/client";
 import type {
   Profile,
   Team,
-  TeamSubmission,
+  TeamMember,
+  PlayerExperience,
+  PlayerSubmission,
   Tournament,
   UserRole,
   Sport,
   ExperienceLevel,
 } from "@/lib/database.types";
-import { SPORTS, sportEmoji, sportLabel } from "@/lib/sports";
+import { EXPERIENCE_WEIGHTS, SPORTS, sportEmoji, sportLabel } from "@/lib/sports";
+import {
+  generateBalancedTeams,
+  type BalancePlayer,
+  type BalanceResult,
+} from "@/lib/team-balancer";
 
 type Section = "overview" | "submissions" | "teams" | "schedule" | "results" | "admins";
 
@@ -22,9 +29,11 @@ type Props = {
   tournament: Tournament | null;
   teams: Team[];
   profiles: Profile[];
+  teamMembers: TeamMember[];
+  experience: PlayerExperience[];
   matches: unknown[];
   flights: unknown[];
-  submissions: TeamSubmission[];
+  submissions: PlayerSubmission[];
 };
 
 export function AdminConsole(props: Props) {
@@ -123,7 +132,15 @@ export function AdminConsole(props: Props) {
       )}
 
       {section === "teams" && (
-        <TeamsPanel teams={props.teams} profiles={props.profiles} busy={busy} action={action} supabase={supabase} />
+        <TeamsPanel
+          teams={props.teams}
+          profiles={props.profiles}
+          teamMembers={props.teamMembers}
+          experience={props.experience}
+          busy={busy}
+          action={action}
+          supabase={supabase}
+        />
       )}
 
       {section === "schedule" && (
@@ -278,98 +295,542 @@ function useFlightStats(flights: unknown[]) {
 function TeamsPanel({
   teams,
   profiles,
+  teamMembers,
+  experience,
   busy,
   action,
   supabase,
 }: {
   teams: Team[];
   profiles: Profile[];
+  teamMembers: TeamMember[];
+  experience: PlayerExperience[];
   busy: boolean;
   action: ActionFn;
   supabase: SupabaseLike;
 }) {
+  const router = useRouter();
+  const [preview, setPreview] = useState<BalanceResult | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [applyError, setApplyError] = useState<string | null>(null);
+
+  const profilesById = useMemo(() => {
+    const m = new Map<string, Profile>();
+    for (const p of profiles) m.set(p.id, p);
+    return m;
+  }, [profiles]);
+
+  const experienceByProfile = useMemo(() => {
+    const m = new Map<string, Record<Sport, ExperienceLevel>>();
+    for (const e of experience) {
+      const cur = m.get(e.profile_id) ?? ({} as Record<Sport, ExperienceLevel>);
+      cur[e.sport] = e.level;
+      m.set(e.profile_id, cur);
+    }
+    return m;
+  }, [experience]);
+
+  const rosters = useMemo(() => {
+    const m = new Map<string, Profile[]>();
+    for (const t of teams) m.set(t.id, []);
+    for (const tm of teamMembers) {
+      const p = profilesById.get(tm.profile_id);
+      const arr = m.get(tm.team_id);
+      if (p && arr) arr.push(p);
+    }
+    return m;
+  }, [teams, teamMembers, profilesById]);
+
+  const assignedProfileIds = useMemo(
+    () => new Set(teamMembers.map((tm) => tm.profile_id)),
+    [teamMembers],
+  );
+
+  const unassigned = useMemo(() => {
+    return profiles.filter(
+      (p) =>
+        !assignedProfileIds.has(p.id) &&
+        hasFullExperience(experienceByProfile.get(p.id)),
+    );
+  }, [profiles, assignedProfileIds, experienceByProfile]);
+
+  function generatePreview() {
+    setApplyError(null);
+    if (unassigned.length < 2) return;
+    setGenerating(true);
+    setTimeout(() => {
+      const input: BalancePlayer[] = unassigned.map((p) => ({
+        id: p.id,
+        experience: experienceByProfile.get(p.id)!,
+      }));
+      const result = generateBalancedTeams(input);
+      setPreview(result);
+      setGenerating(false);
+    }, 0);
+  }
+
+  async function applyPreview() {
+    if (!preview) return;
+    setApplyError(null);
+    const existingNames = new Set(teams.map((t) => t.name.toLowerCase()));
+    let counter = teams.length + 1;
+    for (const pair of preview.pairs) {
+      let name = "";
+      while (true) {
+        const candidate = `Team ${counter++}`;
+        if (!existingNames.has(candidate.toLowerCase())) {
+          name = candidate;
+          existingNames.add(candidate.toLowerCase());
+          break;
+        }
+      }
+      const { data: team, error: teamErr } = await supabase
+        .from("teams")
+        .insert({ name })
+        .select()
+        .single();
+      if (teamErr || !team) {
+        setApplyError(teamErr?.message ?? "Could not create team.");
+        router.refresh();
+        return;
+      }
+      const teamRow = team as Team;
+      const { error: memberErr } = await supabase
+        .from("team_members")
+        .insert([
+          { team_id: teamRow.id, profile_id: pair[0].id },
+          { team_id: teamRow.id, profile_id: pair[1].id },
+        ]);
+      if (memberErr) {
+        setApplyError(memberErr.message);
+        router.refresh();
+        return;
+      }
+    }
+    setPreview(null);
+    router.refresh();
+  }
+
+  async function createEmptyTeam() {
+    const existingNames = new Set(teams.map((t) => t.name.toLowerCase()));
+    let counter = teams.length + 1;
+    let name = "";
+    while (true) {
+      const candidate = `Team ${counter++}`;
+      if (!existingNames.has(candidate.toLowerCase())) {
+        name = candidate;
+        break;
+      }
+    }
+    await action(
+      async () => supabase.from("teams").insert({ name }),
+      `Created ${name}.`,
+    );
+  }
+
   return (
-    <div className="mt-4 space-y-2">
-      {teams.length === 0 && (
-        <div className="card p-6 text-center text-[var(--color-ink)]/60">
-          No teams yet.
+    <div className="mt-4 space-y-4">
+      <div className="card p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-extrabold">Roster</h3>
+            <p className="mt-1 text-sm text-[var(--color-ink)]/70">
+              {unassigned.length} unassigned · {teams.length} team
+              {teams.length === 1 ? "" : "s"}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={generatePreview}
+              disabled={busy || generating || unassigned.length < 2}
+              className="btn btn-primary disabled:opacity-50"
+            >
+              {generating ? "Crunching…" : "Auto-generate teams"}
+            </button>
+            <button
+              onClick={createEmptyTeam}
+              disabled={busy}
+              className="btn btn-secondary disabled:opacity-50"
+            >
+              Add empty team
+            </button>
+          </div>
+        </div>
+
+        {unassigned.length > 0 && (
+          <div className="mt-4">
+            <p className="text-xs font-bold uppercase tracking-widest text-[var(--color-ink)]/60">
+              Unassigned players
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {unassigned.map((p) => (
+                <UnassignedChip
+                  key={p.id}
+                  profile={p}
+                  experience={experienceByProfile.get(p.id)}
+                  teams={teams}
+                  rosters={rosters}
+                  busy={busy}
+                  onAssign={(teamId) =>
+                    action(
+                      async () =>
+                        supabase
+                          .from("team_members")
+                          .insert({ team_id: teamId, profile_id: p.id }),
+                      `Added ${p.full_name} to team.`,
+                    )
+                  }
+                />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {applyError && (
+        <div className="card border-[var(--color-terracotta)] bg-[var(--color-terracotta)]/10 p-3 text-sm font-bold text-[var(--color-terracotta-dark)]">
+          {applyError}
         </div>
       )}
-      {teams.map((t) => (
-        <TeamRow
-          key={t.id}
-          team={t}
-          profiles={profiles}
+
+      {preview && (
+        <PreviewPanel
+          preview={preview}
+          experienceByProfile={experienceByProfile}
+          profilesById={profilesById}
           busy={busy}
-          onDelete={() =>
-            action(
-              async () => {
-                if (!window.confirm(`Delete team "${t.name}"?`)) return { error: null };
-                return supabase.from("teams").delete().eq("id", t.id);
-              },
-              `Deleted ${t.name}.`,
-            )
-          }
-          onRename={(name) =>
-            action(
-              async () => supabase.from("teams").update({ name }).eq("id", t.id),
-              `Renamed.`,
-            )
-          }
+          onApply={applyPreview}
+          onRegenerate={generatePreview}
+          onCancel={() => setPreview(null)}
         />
-      ))}
+      )}
+
+      <div className="space-y-2">
+        {teams.length === 0 && (
+          <div className="card p-6 text-center text-[var(--color-ink)]/60">
+            No teams yet.
+          </div>
+        )}
+        {teams.map((t) => (
+          <TeamCard
+            key={t.id}
+            team={t}
+            members={rosters.get(t.id) ?? []}
+            unassigned={unassigned}
+            busy={busy}
+            onDelete={() =>
+              action(
+                async () => {
+                  if (!window.confirm(`Delete team "${t.name}"?`))
+                    return { error: null };
+                  return supabase.from("teams").delete().eq("id", t.id);
+                },
+                `Deleted ${t.name}.`,
+              )
+            }
+            onRename={(name) =>
+              action(
+                async () => supabase.from("teams").update({ name }).eq("id", t.id),
+                `Renamed.`,
+              )
+            }
+            onAddMember={(profileId) =>
+              action(
+                async () =>
+                  supabase
+                    .from("team_members")
+                    .insert({ team_id: t.id, profile_id: profileId }),
+                "Added to team.",
+              )
+            }
+            onRemoveMember={(profileId) =>
+              action(
+                async () =>
+                  supabase
+                    .from("team_members")
+                    .delete()
+                    .eq("team_id", t.id)
+                    .eq("profile_id", profileId),
+                "Removed from team.",
+              )
+            }
+          />
+        ))}
+      </div>
     </div>
   );
 }
 
-function TeamRow({
+function hasFullExperience(
+  exp: Record<Sport, ExperienceLevel> | undefined,
+): exp is Record<Sport, ExperienceLevel> {
+  if (!exp) return false;
+  return SPORTS.every((s) => Boolean(exp[s.key]));
+}
+
+function UnassignedChip({
+  profile,
+  experience,
+  teams,
+  rosters,
+  busy,
+  onAssign,
+}: {
+  profile: Profile;
+  experience: Record<Sport, ExperienceLevel> | undefined;
+  teams: Team[];
+  rosters: Map<string, Profile[]>;
+  busy: boolean;
+  onAssign: (teamId: string) => void;
+}) {
+  const eligibleTeams = teams.filter((t) => (rosters.get(t.id)?.length ?? 0) < 2);
+  const total = experience
+    ? SPORTS.reduce((acc, s) => acc + (EXPERIENCE_WEIGHTS[experience[s.key]] ?? 0), 0)
+    : 0;
+  return (
+    <div className="rounded-xl border-2 border-[var(--color-ink)] bg-[var(--color-cream-50)] p-2">
+      <p className="text-sm font-extrabold">
+        {profile.nickname || profile.full_name}
+      </p>
+      <p className="text-[10px] uppercase tracking-wider text-[var(--color-ink)]/60">
+        skill {total}
+      </p>
+      {eligibleTeams.length > 0 && (
+        <select
+          disabled={busy}
+          defaultValue=""
+          onChange={(e) => {
+            if (e.target.value) onAssign(e.target.value);
+          }}
+          className="mt-1 w-full rounded-full border-2 border-[var(--color-ink)] bg-[var(--color-cream)] px-2 py-1 text-[11px] font-bold"
+        >
+          <option value="">Add to team…</option>
+          {eligibleTeams.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name}
+            </option>
+          ))}
+        </select>
+      )}
+    </div>
+  );
+}
+
+function PreviewPanel({
+  preview,
+  experienceByProfile,
+  profilesById,
+  busy,
+  onApply,
+  onRegenerate,
+  onCancel,
+}: {
+  preview: BalanceResult;
+  experienceByProfile: Map<string, Record<Sport, ExperienceLevel>>;
+  profilesById: Map<string, Profile>;
+  busy: boolean;
+  onApply: () => void;
+  onRegenerate: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="card border-[var(--color-teal)] bg-[var(--color-teal)]/5 p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 className="text-lg font-extrabold">Proposed pairings</h3>
+          <p className="mt-1 text-sm text-[var(--color-ink)]/70">
+            Per-sport pair-skill spread (lower = more balanced):
+          </p>
+          <ul className="mt-1 flex flex-wrap gap-2 text-xs">
+            {SPORTS.map((s) => (
+              <li
+                key={s.key}
+                className="rounded-full border-2 border-[var(--color-ink)] bg-[var(--color-cream-50)] px-2 py-0.5"
+              >
+                {s.emoji} {s.label}: {preview.perSportSpread[s.key].min}–
+                {preview.perSportSpread[s.key].max}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={onApply}
+            disabled={busy}
+            className="btn btn-primary disabled:opacity-50"
+          >
+            Apply pairings
+          </button>
+          <button
+            onClick={onRegenerate}
+            disabled={busy}
+            className="btn btn-secondary disabled:opacity-50"
+          >
+            Re-roll
+          </button>
+          <button
+            onClick={onCancel}
+            disabled={busy}
+            className="rounded-full border-2 border-[var(--color-ink)] bg-[var(--color-cream-50)] px-4 py-2 text-sm font-bold disabled:opacity-50"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+      <div className="mt-4 space-y-2">
+        {preview.pairs.map((pair, idx) => {
+          const a = profilesById.get(pair[0].id);
+          const b = profilesById.get(pair[1].id);
+          const expA = experienceByProfile.get(pair[0].id);
+          const expB = experienceByProfile.get(pair[1].id);
+          return (
+            <div
+              key={idx}
+              className="rounded-xl border-2 border-[var(--color-ink)] bg-[var(--color-cream-50)] p-3"
+            >
+              <p className="text-xs font-bold uppercase tracking-wider text-[var(--color-ink)]/60">
+                Team {idx + 1}
+              </p>
+              <p className="mt-0.5 text-base font-extrabold">
+                {a?.nickname || a?.full_name} <span className="opacity-50">+</span>{" "}
+                {b?.nickname || b?.full_name}
+              </p>
+              <ul className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-[var(--color-ink)]/70">
+                {SPORTS.map((s) => (
+                  <li key={s.key}>
+                    {s.emoji} {(EXPERIENCE_WEIGHTS[expA?.[s.key] ?? "beginner"] +
+                      EXPERIENCE_WEIGHTS[expB?.[s.key] ?? "beginner"])}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })}
+        {preview.unassigned && (
+          <div className="rounded-xl border-2 border-dashed border-[var(--color-ink)] bg-[var(--color-cream-50)] p-3">
+            <p className="text-xs font-bold uppercase tracking-wider text-[var(--color-ink)]/60">
+              Unassigned (odd number of players)
+            </p>
+            <p className="mt-0.5 font-extrabold">
+              {profilesById.get(preview.unassigned.id)?.nickname ||
+                profilesById.get(preview.unassigned.id)?.full_name}
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function TeamCard({
   team,
+  members,
+  unassigned,
   busy,
   onDelete,
   onRename,
+  onAddMember,
+  onRemoveMember,
 }: {
   team: Team;
-  profiles: Profile[];
+  members: Profile[];
+  unassigned: Profile[];
   busy: boolean;
   onDelete: () => void;
   onRename: (name: string) => void;
+  onAddMember: (profileId: string) => void;
+  onRemoveMember: (profileId: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(team.name);
+  const canAdd = members.length < 2 && unassigned.length > 0;
+
   return (
-    <div className="card flex items-center gap-3 p-3">
-      <div className="flex-1 min-w-0">
-        {editing ? (
-          <input
-            className="input"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onBlur={() => {
-              if (name !== team.name) onRename(name);
-              setEditing(false);
-            }}
-            autoFocus
-          />
-        ) : (
-          <Link
-            href={`/teams/${team.id}`}
-            className="block truncate font-extrabold hover:underline"
-          >
-            {team.name}
-          </Link>
-        )}
-        {team.bio && <p className="mt-0.5 text-xs text-[var(--color-ink)]/60">{team.bio}</p>}
+    <div className="card p-3">
+      <div className="flex items-center gap-3">
+        <div className="flex-1 min-w-0">
+          {editing ? (
+            <input
+              className="input"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onBlur={() => {
+                if (name !== team.name && name.trim().length >= 2) onRename(name.trim());
+                setEditing(false);
+              }}
+              autoFocus
+            />
+          ) : (
+            <Link
+              href={`/teams/${team.id}`}
+              className="block truncate font-extrabold hover:underline"
+            >
+              {team.name}
+            </Link>
+          )}
+          {team.bio && (
+            <p className="mt-0.5 text-xs text-[var(--color-ink)]/60">{team.bio}</p>
+          )}
+        </div>
+        <button
+          onClick={() => setEditing((e) => !e)}
+          className="rounded-full border-2 border-[var(--color-ink)] bg-[var(--color-cream-50)] px-3 py-1 text-xs font-bold"
+        >
+          {editing ? "Cancel" : "Rename"}
+        </button>
+        <button
+          onClick={onDelete}
+          disabled={busy}
+          className="rounded-full border-2 border-[var(--color-ink)] bg-[var(--color-terracotta)] px-3 py-1 text-xs font-bold text-[var(--color-cream)] disabled:opacity-50"
+        >
+          Delete
+        </button>
       </div>
-      <button onClick={() => setEditing((e) => !e)} className="rounded-full border-2 border-[var(--color-ink)] bg-[var(--color-cream-50)] px-3 py-1 text-xs font-bold">
-        {editing ? "Cancel" : "Rename"}
-      </button>
-      <button
-        onClick={onDelete}
-        disabled={busy}
-        className="rounded-full border-2 border-[var(--color-ink)] bg-[var(--color-terracotta)] px-3 py-1 text-xs font-bold text-[var(--color-cream)] disabled:opacity-50"
-      >
-        Delete
-      </button>
+
+      <div className="mt-3 space-y-1">
+        {members.length === 0 && (
+          <p className="text-xs italic text-[var(--color-ink)]/60">No members.</p>
+        )}
+        {members.map((m) => (
+          <div
+            key={m.id}
+            className="flex items-center justify-between gap-2 rounded-lg border-2 border-[var(--color-ink)] bg-[var(--color-cream-50)] px-3 py-1.5"
+          >
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-bold">
+                {m.nickname || m.full_name}
+              </p>
+              <p className="truncate text-[10px] text-[var(--color-ink)]/60">
+                {m.email}
+              </p>
+            </div>
+            <button
+              onClick={() => onRemoveMember(m.id)}
+              disabled={busy}
+              className="rounded-full border-2 border-[var(--color-ink)] bg-[var(--color-cream)] px-2 py-0.5 text-[10px] font-bold disabled:opacity-50"
+            >
+              Remove
+            </button>
+          </div>
+        ))}
+        {canAdd && (
+          <select
+            disabled={busy}
+            defaultValue=""
+            onChange={(e) => {
+              if (e.target.value) onAddMember(e.target.value);
+            }}
+            className="w-full rounded-lg border-2 border-[var(--color-ink)] bg-[var(--color-cream)] px-2 py-1 text-xs font-bold"
+          >
+            <option value="">Add player…</option>
+            {unassigned.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.nickname || p.full_name} ({p.email})
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
     </div>
   );
 }
@@ -677,7 +1138,7 @@ function SubmissionsPanel({
   setMsg,
   router,
 }: {
-  submissions: TeamSubmission[];
+  submissions: PlayerSubmission[];
   busy: boolean;
   setBusy: (b: boolean) => void;
   setMsg: (m: { kind: "ok" | "err"; text: string } | null) => void;
@@ -689,13 +1150,13 @@ function SubmissionsPanel({
   async function approve(id: string) {
     setBusy(true);
     setMsg(null);
-    const res = await fetch(`/api/team-submissions/${id}/approve`, { method: "POST" });
+    const res = await fetch(`/api/player-submissions/${id}/approve`, { method: "POST" });
     const json = await res.json().catch(() => ({}));
     setBusy(false);
     if (!res.ok) {
       setMsg({ kind: "err", text: json.message ?? "Could not approve." });
     } else {
-      setMsg({ kind: "ok", text: "Team approved — magic links sent to both players." });
+      setMsg({ kind: "ok", text: "Player approved — magic link sent." });
       router.refresh();
     }
   }
@@ -704,7 +1165,7 @@ function SubmissionsPanel({
     const reason = window.prompt("Optional rejection reason (visible to admins only):") ?? "";
     setBusy(true);
     setMsg(null);
-    const res = await fetch(`/api/team-submissions/${id}/reject`, {
+    const res = await fetch(`/api/player-submissions/${id}/reject`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ reason: reason || null }),
@@ -744,7 +1205,13 @@ function SubmissionsPanel({
       )}
 
       {list.map((s) => (
-        <SubmissionCard key={s.id} sub={s} busy={busy} onApprove={() => approve(s.id)} onReject={() => reject(s.id)} />
+        <SubmissionCard
+          key={s.id}
+          sub={s}
+          busy={busy}
+          onApprove={() => approve(s.id)}
+          onReject={() => reject(s.id)}
+        />
       ))}
     </div>
   );
@@ -756,25 +1223,28 @@ function SubmissionCard({
   onApprove,
   onReject,
 }: {
-  sub: TeamSubmission;
+  sub: PlayerSubmission;
   busy: boolean;
   onApprove: () => void;
   onReject: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const fullName = `${sub.first_name} ${sub.last_name}`.trim();
+  const displayName = sub.nickname ? `${fullName} (${sub.nickname})` : fullName;
   return (
     <div className="card p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <p className="truncate text-lg font-extrabold">{sub.team_name}</p>
+            <p className="truncate text-lg font-extrabold">{displayName}</p>
             <SubStatusBadge status={sub.status} />
           </div>
+          <p className="mt-0.5 text-xs text-[var(--color-ink)]/60">{sub.email}</p>
           <p className="mt-0.5 text-xs text-[var(--color-ink)]/60">
             {new Date(sub.created_at).toLocaleString()}
           </p>
-          {sub.team_bio && (
-            <p className="mt-2 text-sm text-[var(--color-ink)]/80">{sub.team_bio}</p>
+          {sub.bio && (
+            <p className="mt-2 text-sm text-[var(--color-ink)]/80">{sub.bio}</p>
           )}
         </div>
       </div>
@@ -783,24 +1253,25 @@ function SubmissionCard({
         onClick={() => setOpen((o) => !o)}
         className="mt-3 text-xs font-bold underline opacity-70 hover:opacity-100"
       >
-        {open ? "Hide details" : "Show players & experience"}
+        {open ? "Hide skill levels" : "Show skill levels"}
       </button>
 
       {open && (
-        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <PlayerSummary
-            name={sub.player_1_name}
-            email={sub.player_1_email}
-            bio={sub.player_1_bio}
-            experience={sub.player_1_experience}
-          />
-          <PlayerSummary
-            name={sub.player_2_name}
-            email={sub.player_2_email}
-            bio={sub.player_2_bio}
-            experience={sub.player_2_experience}
-          />
-        </div>
+        <ul className="mt-3 grid grid-cols-2 gap-1 text-xs">
+          {SPORTS.map((s) => (
+            <li
+              key={s.key}
+              className="flex justify-between rounded-lg border-2 border-[var(--color-ink)] bg-[var(--color-cream-50)] px-2 py-1"
+            >
+              <span>
+                {s.emoji} {s.label}
+              </span>
+              <span className="font-bold capitalize">
+                {sub.experience?.[s.key] ?? "—"}
+              </span>
+            </li>
+          ))}
+        </ul>
       )}
 
       {sub.status === "pending" && (
@@ -831,37 +1302,7 @@ function SubmissionCard({
   );
 }
 
-function PlayerSummary({
-  name,
-  email,
-  bio,
-  experience,
-}: {
-  name: string;
-  email: string;
-  bio: string | null;
-  experience: Record<Sport, ExperienceLevel>;
-}) {
-  return (
-    <div className="rounded-xl border-2 border-[var(--color-ink)] bg-[var(--color-cream-50)] p-3">
-      <p className="font-extrabold">{name}</p>
-      <p className="text-xs text-[var(--color-ink)]/65">{email}</p>
-      {bio && <p className="mt-1 text-sm text-[var(--color-ink)]/80">{bio}</p>}
-      <ul className="mt-2 grid grid-cols-2 gap-1 text-xs">
-        {SPORTS.map((s) => (
-          <li key={s.key} className="flex justify-between">
-            <span>
-              {s.emoji} {s.label}
-            </span>
-            <span className="font-bold capitalize">{experience?.[s.key] ?? "—"}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function SubStatusBadge({ status }: { status: TeamSubmission["status"] }) {
+function SubStatusBadge({ status }: { status: PlayerSubmission["status"] }) {
   const styles =
     status === "approved"
       ? "bg-[var(--color-teal)] text-[var(--color-cream)]"

@@ -18,6 +18,8 @@ export default async function AdminPage() {
     { data: tournament },
     { data: teams },
     { data: profiles },
+    { data: teamMembers },
+    { data: experience },
     { data: matches },
     { data: flights },
     { data: submissions },
@@ -25,6 +27,8 @@ export default async function AdminPage() {
     supabase.from("tournament").select("*").eq("id", 1).maybeSingle(),
     supabase.from("teams").select("*").order("name"),
     supabase.from("profiles").select("*").order("full_name"),
+    supabase.from("team_members").select("team_id, profile_id"),
+    supabase.from("player_experience").select("profile_id, sport, level"),
     supabase
       .from("matches")
       .select("*, ta:team_a(name), tb:team_b(name)")
@@ -35,7 +39,10 @@ export default async function AdminPage() {
       .select("*, t1:team_1(name), t2:team_2(name)")
       .order("round_number")
       .order("created_at", { ascending: false }),
-    supabase.from("team_submissions").select("*").order("created_at", { ascending: false }),
+    supabase
+      .from("player_submissions")
+      .select("*")
+      .order("created_at", { ascending: false }),
   ]);
 
   return (
@@ -52,6 +59,8 @@ export default async function AdminPage() {
           tournament={tournament}
           teams={teams ?? []}
           profiles={profiles ?? []}
+          teamMembers={teamMembers ?? []}
+          experience={experience ?? []}
           matches={matches ?? []}
           flights={flights ?? []}
           submissions={submissions ?? []}
