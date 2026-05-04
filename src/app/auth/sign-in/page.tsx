@@ -11,9 +11,9 @@ const IS_DEV = process.env.NODE_ENV !== "production";
 export default async function SignInPage({
 	searchParams,
 }: {
-	searchParams: Promise<{ next?: string; error?: string }>;
+	searchParams: Promise<{ next?: string }>;
 }) {
-	const { next, error } = await searchParams;
+	const { next } = await searchParams;
 
 	let devProfiles: Profile[] = [];
 	if (IS_DEV) {
@@ -43,11 +43,6 @@ export default async function SignInPage({
 				<p className="mt-2 text-[var(--color-ink)]/75">
 					Vi sender deg en magisk lenke på e-post.
 				</p>
-				{error === "link" && (
-					<div className="card mt-4 border-[var(--color-terracotta)] bg-[var(--color-terracotta)]/10 p-4 text-sm font-bold text-[var(--color-terracotta-dark)]">
-						Lenken er ugyldig eller utløpt. Prøv igjen.
-					</div>
-				)}
 				<SignInForm next={next} />
 				{IS_DEV && <DevSignIn profiles={devProfiles} next={next} />}
 			</div>

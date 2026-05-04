@@ -37,6 +37,7 @@ type Section =
 	| "schedule"
 	| "results"
 	| "activity"
+	| "players"
 	| "admins";
 
 type Props = {
@@ -87,6 +88,7 @@ export function AdminConsole(props: Props) {
 			badge: pendingCount || undefined,
 		},
 		{ key: "teams", label: "Lag" },
+		{ key: "players", label: "Spillere" },
 		{ key: "schedule", label: "Oppsett" },
 		{ key: "results", label: "Resultater" },
 		{ key: "activity", label: "Aktivitetslogg" },
@@ -200,6 +202,17 @@ export function AdminConsole(props: Props) {
 					initial={props.activity}
 					teams={props.teams}
 					profiles={props.profiles}
+				/>
+			)}
+
+			{section === "players" && (
+				<PlayersPanel
+					profiles={props.profiles}
+					teamMembers={props.teamMembers}
+					teams={props.teams}
+					busy={busy}
+					action={action}
+					supabase={supabase}
 				/>
 			)}
 
@@ -1178,6 +1191,180 @@ function ResultsPanel({
 					</div>
 				</Link>
 			))}
+		</div>
+	);
+}
+
+function PlayersPanel({
+	profiles,
+	teamMembers,
+	teams,
+	busy,
+	action,
+	supabase,
+}: {
+	profiles: Profile[];
+	teamMembers: TeamMember[];
+	teams: Team[];
+	busy: boolean;
+	action: ActionFn;
+	supabase: SupabaseLike;
+}) {
+	const [filter, setFilter] = useState("");
+	const teamById = useMemo(() => {
+		const m = new Map<string, Team>();
+		for (const t of teams) m.set(t.id, t);
+		return m;
+	}, [teams]);
+	const teamForProfile = useMemo(() => {
+		const m = new Map<string, Team>();
+		for (const tm of teamMembers) {
+			const t = teamById.get(tm.team_id);
+			if (t) m.set(tm.profile_id, t);
+		}
+		return m;
+	}, [teamMembers, teamById]);
+
+	const filtered = useMemo(() => {
+		const q = filter.trim().toLowerCase();
+		if (!q) return profiles;
+		return profiles.filter((p) =>
+			[p.full_name, p.nickname ?? "", p.email]
+				.join(" ")
+				.toLowerCase()
+				.includes(q),
+		);
+	}, [profiles, filter]);
+
+	return (
+		<div className="mt-4 space-y-3">
+			<div className="card p-4">
+				<label className="block">
+					<span className="label">Søk</span>
+					<input
+						className="input"
+						placeholder="Navn, kallenavn eller e-post"
+						value={filter}
+						onChange={(e) => setFilter(e.target.value)}
+					/>
+				</label>
+				<p className="mt-2 text-xs text-ink/60">
+					{filtered.length} av {profiles.length} brukere
+				</p>
+			</div>
+
+			<div className="space-y-2">
+				{filtered.map((p) => (
+					<PlayerRow
+						key={p.id}
+						profile={p}
+						team={teamForProfile.get(p.id) ?? null}
+						busy={busy}
+						onSaveNickname={(nickname) =>
+							action(async () => {
+								const { error } = await supabase.rpc(
+									"admin_update_player_nickname",
+									{ p_profile_id: p.id, p_nickname: nickname },
+								);
+								return { error };
+							}, "Kallenavnet er oppdatert.")
+						}
+					/>
+				))}
+				{filtered.length === 0 && (
+					<div className="card p-6 text-center text-ink/60">Ingen treff.</div>
+				)}
+			</div>
+		</div>
+	);
+}
+
+function PlayerRow({
+	profile,
+	team,
+	busy,
+	onSaveNickname,
+}: {
+	profile: Profile;
+	team: Team | null;
+	busy: boolean;
+	onSaveNickname: (nickname: string) => Promise<void> | void;
+}) {
+	const [editing, setEditing] = useState(false);
+	const [value, setValue] = useState(profile.nickname ?? "");
+
+	function commit() {
+		const next = value.trim();
+		const cur = profile.nickname ?? "";
+		if (next !== cur) onSaveNickname(next);
+		setEditing(false);
+	}
+
+	return (
+		<div className="card flex flex-wrap items-center gap-3 p-3">
+			<div className="min-w-0 flex-1">
+				<p className="truncate font-extrabold">{profile.full_name}</p>
+				<p className="truncate text-xs text-ink/60">{profile.email}</p>
+				{team && (
+					<p className="mt-0.5 text-[11px] font-bold text-ink/70">
+						Lag: {team.name}
+					</p>
+				)}
+			</div>
+			<div className="flex items-center gap-2">
+				{editing ? (
+					<>
+						<input
+							// biome-ignore lint/a11y/noAutofocus: focus the input after entering edit mode
+							autoFocus
+							className="input !py-1 !text-sm"
+							maxLength={40}
+							placeholder="Kallenavn"
+							value={value}
+							onChange={(e) => setValue(e.target.value)}
+							onKeyDown={(e) => {
+								if (e.key === "Enter") commit();
+								if (e.key === "Escape") {
+									setValue(profile.nickname ?? "");
+									setEditing(false);
+								}
+							}}
+						/>
+						<button
+							type="button"
+							onClick={commit}
+							disabled={busy}
+							className="rounded-full border-2 border-ink bg-mustard px-3 py-1 text-xs font-bold disabled:opacity-50"
+						>
+							Lagre
+						</button>
+						<button
+							type="button"
+							onClick={() => {
+								setValue(profile.nickname ?? "");
+								setEditing(false);
+							}}
+							className="rounded-full border-2 border-ink bg-cream-50 px-3 py-1 text-xs font-bold"
+						>
+							Avbryt
+						</button>
+					</>
+				) : (
+					<>
+						<span className="rounded-full border-2 border-ink bg-cream-50 px-3 py-1 text-xs font-bold">
+							{profile.nickname ? `«${profile.nickname}»` : "Uten kallenavn"}
+						</span>
+						<button
+							type="button"
+							onClick={() => setEditing(true)}
+							disabled={busy}
+							className="rounded-full border-2 border-ink bg-cream px-3 py-1 text-xs font-bold disabled:opacity-50"
+						>
+							Endre kallenavn
+						</button>
+					</>
+				)}
+			</div>
 		</div>
 	);
 }

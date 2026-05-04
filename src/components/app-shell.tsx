@@ -6,7 +6,7 @@ import type { Profile, Team } from "@/lib/database.types";
 type Props = {
 	user: { profile: Profile | null; team: Team | null } | null;
 	children: React.ReactNode;
-	active?: "leaderboard" | "matches" | "dashboard" | "admin";
+	active?: "leaderboard" | "matches" | "dashboard" | "admin" | "profile";
 };
 
 export function AppShell({ user, children, active }: Props) {
@@ -44,6 +44,11 @@ export function AppShell({ user, children, active }: Props) {
 								Mitt lag
 							</NavLink>
 						)}
+						{user?.profile && (
+							<NavLink href="/profile" active={active === "profile"}>
+								Profil
+							</NavLink>
+						)}
 						{showAdmin && (
 							<NavLink href="/admin" active={active === "admin"}>
 								Admin
@@ -75,7 +80,11 @@ export function AppShell({ user, children, active }: Props) {
 			<main>{children}</main>
 
 			{/* Mobile bottom nav */}
-			<nav className="fixed bottom-0 left-0 right-0 z-40 grid grid-cols-4 border-t-2 border-[var(--color-ink)] bg-[var(--color-cream-50)] md:hidden">
+			<nav
+				className={`fixed bottom-0 left-0 right-0 z-40 grid border-t-2 border-[var(--color-ink)] bg-[var(--color-cream-50)] md:hidden ${
+					showAdmin && user?.profile ? "grid-cols-5" : "grid-cols-4"
+				}`}
+			>
 				<BottomNavLink
 					href="/leaderboard"
 					active={active === "leaderboard"}
@@ -94,15 +103,23 @@ export function AppShell({ user, children, active }: Props) {
 					icon="👥"
 					label="Lag"
 				/>
-				{showAdmin ? (
+				{user?.profile ? (
+					<BottomNavLink
+						href="/profile"
+						active={active === "profile"}
+						icon="🙂"
+						label="Profil"
+					/>
+				) : (
+					<BottomNavLink href="/" active={false} icon="🏠" label="Hjem" />
+				)}
+				{showAdmin && user?.profile && (
 					<BottomNavLink
 						href="/admin"
 						active={active === "admin"}
 						icon="⚙️"
 						label="Admin"
 					/>
-				) : (
-					<BottomNavLink href="/" active={false} icon="🏠" label="Hjem" />
 				)}
 			</nav>
 		</div>

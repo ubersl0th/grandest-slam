@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { AuthHashError } from "@/components/auth-hash-error";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -37,7 +38,10 @@ export default function RootLayout({
 					rel="stylesheet"
 				/>
 			</head>
-			<body>{children}</body>
+			<body>
+				<AuthHashError />
+				{children}
+			</body>
 		</html>
 	);
 }
