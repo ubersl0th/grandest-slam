@@ -2,9 +2,10 @@
 -- Local development seed.
 -- =====================================================================
 -- Runs after migrations on `supabase db reset` (and on first
--- `supabase start`). Creates a super_admin, an admin, eight players,
+-- `supabase start`). Creates a super_admin, an admin, sixteen players,
 -- three teams, a padel/tennis round-robin, a few flights, and a few
--- result states so every screen has data.
+-- result states so every screen has data. Both admins are also seeded
+-- with player_experience so they can join a team if they like.
 --
 -- All seeded users sign in at /auth/sign-in with email + password "password".
 -- Inbucket (http://127.0.0.1:54324) catches any magic-link emails too.
@@ -57,7 +58,15 @@ from (values
   ('00000000-0000-0000-0000-000000000007'::uuid, 'erik@grandest-slam.no',    'Erik',    'Eriksen',    null),
   ('00000000-0000-0000-0000-000000000008'::uuid, 'fiona@grandest-slam.no',   'Fiona',   'Fjeld',      null),
   ('00000000-0000-0000-0000-000000000009'::uuid, 'gunnar@grandest-slam.no',  'Gunnar',  'Grøn',       null),
-  ('00000000-0000-0000-0000-00000000000a'::uuid, 'hilde@grandest-slam.no',   'Hilde',   'Halvorsen',  null)
+  ('00000000-0000-0000-0000-00000000000a'::uuid, 'hilde@grandest-slam.no',   'Hilde',   'Halvorsen',  null),
+  ('00000000-0000-0000-0000-00000000000b'::uuid, 'ivar@grandest-slam.no',    'Ivar',    'Iversen',    null),
+  ('00000000-0000-0000-0000-00000000000c'::uuid, 'jenny@grandest-slam.no',   'Jenny',   'Johansen',   'Jenz'),
+  ('00000000-0000-0000-0000-00000000000d'::uuid, 'kari@grandest-slam.no',    'Kari',    'Karlsen',    null),
+  ('00000000-0000-0000-0000-00000000000e'::uuid, 'lars@grandest-slam.no',    'Lars',    'Larsen',     null),
+  ('00000000-0000-0000-0000-00000000000f'::uuid, 'mona@grandest-slam.no',    'Mona',    'Madsen',     null),
+  ('00000000-0000-0000-0000-000000000010'::uuid, 'nils@grandest-slam.no',    'Nils',    'Nilsen',     'Nisse'),
+  ('00000000-0000-0000-0000-000000000011'::uuid, 'olga@grandest-slam.no',    'Olga',    'Olsen',      null),
+  ('00000000-0000-0000-0000-000000000012'::uuid, 'per@grandest-slam.no',     'Per',     'Pettersen',  null)
 ) as v(id, email, first_name, last_name, nickname);
 
 -- Set roles deterministically: the trigger picks one row as super_admin,
@@ -67,6 +76,12 @@ update profiles set role = case
   when id = '00000000-0000-0000-0000-000000000002'::uuid then 'admin'::user_role
   else 'player'::user_role
 end;
+
+-- A short bio for the admins so the profile page has content out of the box.
+update profiles set bio = 'Holder styr på serieoppsettet, men kan også slå et slag.'
+  where id = '00000000-0000-0000-0000-000000000001'::uuid;
+update profiles set bio = 'Avgjør tvister med diplomati og en hard backhand.'
+  where id = '00000000-0000-0000-0000-000000000002'::uuid;
 
 -- =====================================================================
 -- auth.identities — required for password sign-in to work.
@@ -88,18 +103,26 @@ select
   u.id::text,
   now(), now(), now()
 from auth.users u
-where u.email in (
-  'admin@grandest-slam.no', 'mod@grandest-slam.no',
-  'alice@grandest-slam.no', 'bob@grandest-slam.no', 'charlie@grandest-slam.no',
-  'dora@grandest-slam.no', 'erik@grandest-slam.no', 'fiona@grandest-slam.no',
-  'gunnar@grandest-slam.no', 'hilde@grandest-slam.no'
-);
+where u.email like '%@grandest-slam.no';
 
 -- =====================================================================
--- Player experience — every player rated in every sport.
+-- Player experience — every seeded user (admins included) is rated in
+-- every sport, so admins can opt in to play without extra setup.
 -- =====================================================================
 
 insert into player_experience (profile_id, sport, level) values
+  -- Astrid (super_admin) — the boss has played everything once.
+  ('00000000-0000-0000-0000-000000000001'::uuid, 'padel',     'intermediate'),
+  ('00000000-0000-0000-0000-000000000001'::uuid, 'tennis',    'intermediate'),
+  ('00000000-0000-0000-0000-000000000001'::uuid, 'disc_golf', 'beginner'),
+  ('00000000-0000-0000-0000-000000000001'::uuid, 'golf',      'advanced'),
+
+  -- Magnus (admin)
+  ('00000000-0000-0000-0000-000000000002'::uuid, 'padel',     'beginner'),
+  ('00000000-0000-0000-0000-000000000002'::uuid, 'tennis',    'advanced'),
+  ('00000000-0000-0000-0000-000000000002'::uuid, 'disc_golf', 'intermediate'),
+  ('00000000-0000-0000-0000-000000000002'::uuid, 'golf',      'intermediate'),
+
   ('00000000-0000-0000-0000-000000000003'::uuid, 'padel',     'intermediate'),
   ('00000000-0000-0000-0000-000000000003'::uuid, 'tennis',    'advanced'),
   ('00000000-0000-0000-0000-000000000003'::uuid, 'disc_golf', 'beginner'),
@@ -138,11 +161,52 @@ insert into player_experience (profile_id, sport, level) values
   ('00000000-0000-0000-0000-00000000000a'::uuid, 'padel',     'beginner'),
   ('00000000-0000-0000-0000-00000000000a'::uuid, 'tennis',    'intermediate'),
   ('00000000-0000-0000-0000-00000000000a'::uuid, 'disc_golf', 'intermediate'),
-  ('00000000-0000-0000-0000-00000000000a'::uuid, 'golf',      'beginner');
+  ('00000000-0000-0000-0000-00000000000a'::uuid, 'golf',      'beginner'),
+
+  ('00000000-0000-0000-0000-00000000000b'::uuid, 'padel',     'advanced'),
+  ('00000000-0000-0000-0000-00000000000b'::uuid, 'tennis',    'beginner'),
+  ('00000000-0000-0000-0000-00000000000b'::uuid, 'disc_golf', 'beginner'),
+  ('00000000-0000-0000-0000-00000000000b'::uuid, 'golf',      'intermediate'),
+
+  ('00000000-0000-0000-0000-00000000000c'::uuid, 'padel',     'intermediate'),
+  ('00000000-0000-0000-0000-00000000000c'::uuid, 'tennis',    'intermediate'),
+  ('00000000-0000-0000-0000-00000000000c'::uuid, 'disc_golf', 'advanced'),
+  ('00000000-0000-0000-0000-00000000000c'::uuid, 'golf',      'beginner'),
+
+  ('00000000-0000-0000-0000-00000000000d'::uuid, 'padel',     'beginner'),
+  ('00000000-0000-0000-0000-00000000000d'::uuid, 'tennis',    'beginner'),
+  ('00000000-0000-0000-0000-00000000000d'::uuid, 'disc_golf', 'intermediate'),
+  ('00000000-0000-0000-0000-00000000000d'::uuid, 'golf',      'advanced'),
+
+  ('00000000-0000-0000-0000-00000000000e'::uuid, 'padel',     'advanced'),
+  ('00000000-0000-0000-0000-00000000000e'::uuid, 'tennis',    'advanced'),
+  ('00000000-0000-0000-0000-00000000000e'::uuid, 'disc_golf', 'intermediate'),
+  ('00000000-0000-0000-0000-00000000000e'::uuid, 'golf',      'intermediate'),
+
+  ('00000000-0000-0000-0000-00000000000f'::uuid, 'padel',     'intermediate'),
+  ('00000000-0000-0000-0000-00000000000f'::uuid, 'tennis',    'beginner'),
+  ('00000000-0000-0000-0000-00000000000f'::uuid, 'disc_golf', 'advanced'),
+  ('00000000-0000-0000-0000-00000000000f'::uuid, 'golf',      'beginner'),
+
+  ('00000000-0000-0000-0000-000000000010'::uuid, 'padel',     'beginner'),
+  ('00000000-0000-0000-0000-000000000010'::uuid, 'tennis',    'intermediate'),
+  ('00000000-0000-0000-0000-000000000010'::uuid, 'disc_golf', 'beginner'),
+  ('00000000-0000-0000-0000-000000000010'::uuid, 'golf',      'intermediate'),
+
+  ('00000000-0000-0000-0000-000000000011'::uuid, 'padel',     'intermediate'),
+  ('00000000-0000-0000-0000-000000000011'::uuid, 'tennis',    'advanced'),
+  ('00000000-0000-0000-0000-000000000011'::uuid, 'disc_golf', 'intermediate'),
+  ('00000000-0000-0000-0000-000000000011'::uuid, 'golf',      'advanced'),
+
+  ('00000000-0000-0000-0000-000000000012'::uuid, 'padel',     'advanced'),
+  ('00000000-0000-0000-0000-000000000012'::uuid, 'tennis',    'intermediate'),
+  ('00000000-0000-0000-0000-000000000012'::uuid, 'disc_golf', 'advanced'),
+  ('00000000-0000-0000-0000-000000000012'::uuid, 'golf',      'advanced');
 
 -- =====================================================================
--- Teams — three pairs; Gunnar and Hilde are left unassigned so the
--- "Generer lag automatisk" flow has someone to balance.
+-- Teams — three pairs to start; the rest of the players (and the two
+-- admins) are left unassigned so the "Generer lag automatisk" flow has
+-- a healthy pool to balance.
 -- =====================================================================
 
 insert into teams (id, name, bio) values
@@ -226,7 +290,7 @@ where id = 'cccccccc-0000-0000-0000-000000000001'::uuid;
 insert into player_submissions (
   first_name, last_name, nickname, email, bio, experience
 ) values (
-  'Ingrid', 'Iversen', 'Ingie', 'ingrid@grandest-slam.no',
+  'Sigrid', 'Sørensen', 'Siggi', 'sigrid@grandest-slam.no',
   'Spilte tennis i college, har aldri rørt frisbeegolf.',
   '{"padel": "intermediate", "tennis": "advanced", "disc_golf": "beginner", "golf": "beginner"}'::jsonb
 );
@@ -244,6 +308,6 @@ select log_activity(
   null::text,
   null::uuid[],
   'Lokalt utviklingsmiljø ble seedet med demo-data',
-  jsonb_build_object('users', 10, 'teams', 3, 'matches', 6, 'flights', 3),
+  jsonb_build_object('users', 18, 'teams', 3, 'matches', 6, 'flights', 3),
   '00000000-0000-0000-0000-000000000001'::uuid
 );

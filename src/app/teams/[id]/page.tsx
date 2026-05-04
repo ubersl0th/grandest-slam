@@ -5,6 +5,7 @@ import { getSessionUser } from "@/lib/auth";
 import type { Profile } from "@/lib/database.types";
 import { experienceLabel, SPORTS, sportEmoji, sportLabel } from "@/lib/sports";
 import { createClient } from "@/lib/supabase/server";
+import { TeamNameControls } from "./team-name-controls";
 
 export const revalidate = 0;
 
@@ -126,6 +127,29 @@ export default async function TeamPage({
 						})}
 					</div>
 				</div>
+
+				{(() => {
+					if (!user?.id) return null;
+					const memberRows = (members as unknown as MemberRow[]) ?? [];
+					const memberProfiles = memberRows
+						.map(memberProfile)
+						.filter((p): p is Profile => Boolean(p));
+					const isMember = memberProfiles.some((p) => p.id === user.id);
+					if (!isMember) return null;
+					const teammate = memberProfiles.find((p) => p.id !== user.id) ?? null;
+					const requester =
+						memberProfiles.find(
+							(p) => p.id === team.pending_name_requested_by,
+						) ?? null;
+					return (
+						<TeamNameControls
+							team={team}
+							currentUserId={user.id}
+							teammate={teammate}
+							requester={requester}
+						/>
+					);
+				})()}
 
 				<h2
 					className="mt-8 text-2xl"

@@ -40,6 +40,9 @@ export type Team = {
 	id: string;
 	name: string;
 	bio: string | null;
+	pending_name: string | null;
+	pending_name_requested_by: string | null;
+	pending_name_requested_at: string | null;
 	created_at: string;
 };
 
@@ -220,6 +223,22 @@ export type Database = {
 			reject_player_submission: {
 				Args: { p_submission_id: string; p_reason?: string | null };
 				Returns: PlayerSubmission;
+			};
+			request_team_name_change: {
+				Args: { p_team_id: string; p_new_name: string };
+				Returns: Team;
+			};
+			approve_team_name_change: {
+				Args: { p_team_id: string };
+				Returns: Team;
+			};
+			cancel_team_name_change: {
+				Args: { p_team_id: string };
+				Returns: Team;
+			};
+			admin_update_player_nickname: {
+				Args: { p_profile_id: string; p_nickname: string };
+				Returns: Profile;
 			};
 		};
 		Enums: {

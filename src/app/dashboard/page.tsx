@@ -26,11 +26,12 @@ export default async function DashboardPage() {
 						Ingen lag enda
 					</h1>
 					<p className="mt-2 text-[var(--color-ink)]/75">
-						Du er logget inn, men er ikke tilknyttet et lag. Be en administrator
-						om hjelp, eller meld deg på via påmeldingsskjemaet.
+						Du er logget inn, men er ikke tilknyttet et lag. Fyll ut profilen
+						din med ferdighetsnivåer — så plukker en administrator deg ut når
+						lagene settes sammen.
 					</p>
-					<Link href="/join" className="btn btn-primary mt-6">
-						Meld på
+					<Link href="/profile" className="btn btn-primary mt-6">
+						Til profilen min
 					</Link>
 				</div>
 			</AppShell>
