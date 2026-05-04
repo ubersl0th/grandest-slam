@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import type {
+	ActivityLog,
 	ExperienceLevel,
 	PlayerExperience,
 	PlayerSubmission,
@@ -27,6 +28,7 @@ import {
 	type BalanceResult,
 	generateBalancedTeams,
 } from "@/lib/team-balancer";
+import { ActivityLogPanel } from "./activity-log-panel";
 
 type Section =
 	| "overview"
@@ -34,6 +36,7 @@ type Section =
 	| "teams"
 	| "schedule"
 	| "results"
+	| "activity"
 	| "admins";
 
 type Props = {
@@ -46,6 +49,7 @@ type Props = {
 	matches: unknown[];
 	flights: unknown[];
 	submissions: PlayerSubmission[];
+	activity: ActivityLog[];
 };
 
 export function AdminConsole(props: Props) {
@@ -85,6 +89,7 @@ export function AdminConsole(props: Props) {
 		{ key: "teams", label: "Lag" },
 		{ key: "schedule", label: "Oppsett" },
 		{ key: "results", label: "Resultater" },
+		{ key: "activity", label: "Aktivitetslogg" },
 		...(props.isSuperAdmin
 			? [{ key: "admins" as const, label: "Administratorer" }]
 			: []),
@@ -188,6 +193,14 @@ export function AdminConsole(props: Props) {
 
 			{section === "results" && (
 				<ResultsPanel matches={props.matches} flights={props.flights} />
+			)}
+
+			{section === "activity" && (
+				<ActivityLogPanel
+					initial={props.activity}
+					teams={props.teams}
+					profiles={props.profiles}
+				/>
 			)}
 
 			{section === "admins" && props.isSuperAdmin && (

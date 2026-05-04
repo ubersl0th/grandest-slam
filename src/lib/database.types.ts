@@ -101,6 +101,21 @@ export type Tournament = {
 	ended_at: string | null;
 };
 
+export type ActivityLog = {
+	id: string;
+	created_at: string;
+	actor_id: string | null;
+	actor_name: string | null;
+	actor_role: UserRole | null;
+	action: string;
+	target_type: string | null;
+	target_id: string | null;
+	target_label: string | null;
+	team_ids: string[];
+	summary: string;
+	metadata: Record<string, unknown> | null;
+};
+
 export type TeamTotals = {
 	team_id: string;
 	team_name: string;
@@ -152,6 +167,10 @@ export type Database = {
 					email: string;
 					experience: Record<Sport, ExperienceLevel>;
 				}
+			>;
+			activity_log: Tbl<
+				ActivityLog,
+				Partial<ActivityLog> & { action: string; summary: string }
 			>;
 		};
 		Views: {

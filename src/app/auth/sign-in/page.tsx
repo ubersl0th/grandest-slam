@@ -1,7 +1,12 @@
 import Link from "next/link";
+import type { Profile } from "@/lib/database.types";
+import { createClient } from "@/lib/supabase/server";
+import { DevSignIn } from "./dev-sign-in";
 import { SignInForm } from "./sign-in-form";
 
 export const metadata = { title: "Logg inn · The Grandest Slam" };
+
+const IS_DEV = process.env.NODE_ENV !== "production";
 
 export default async function SignInPage({
 	searchParams,
@@ -9,6 +14,17 @@ export default async function SignInPage({
 	searchParams: Promise<{ next?: string; error?: string }>;
 }) {
 	const { next, error } = await searchParams;
+
+	let devProfiles: Profile[] = [];
+	if (IS_DEV) {
+		const supabase = await createClient();
+		const { data } = await supabase
+			.from("profiles")
+			.select("*")
+			.order("role", { ascending: false })
+			.order("full_name");
+		devProfiles = data ?? [];
+	}
 	return (
 		<main className="min-h-dvh px-5 py-10">
 			<div className="mx-auto max-w-md">
@@ -33,6 +49,7 @@ export default async function SignInPage({
 					</div>
 				)}
 				<SignInForm next={next} />
+				{IS_DEV && <DevSignIn profiles={devProfiles} next={next} />}
 			</div>
 		</main>
 	);
