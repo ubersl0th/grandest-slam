@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { JoinForm } from "./join-form";
+import { JoinChooser } from "./join-chooser";
 
 export const metadata = { title: "Meld på · The Grandest Slam" };
 
@@ -22,12 +22,11 @@ export default function JoinPage() {
 					slammet
 				</h1>
 				<p className="mt-3 max-w-md text-[var(--color-ink)]/75">
-					Fire idretter, én helg. Meld deg på som enkeltperson —
-					administratorene setter sammen balanserte lag på to og sender deg en
-					magisk lenke på e-post.
+					Fire idretter, én helg. Meld deg på alene og bli paret av en admin,
+					eller meld på et komplett lag hvis du allerede har en makker.
 				</p>
 
-				<JoinForm />
+				<JoinChooser />
 			</div>
 		</main>
 	);
