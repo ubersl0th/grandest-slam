@@ -7,6 +7,31 @@ export type UserRole = "player" | "admin" | "super_admin";
 export type SubmissionStatus = "pending" | "confirmed" | "disputed";
 export type TournamentStatus = "not_started" | "active" | "completed";
 export type PlayerReviewStatus = "pending" | "approved" | "rejected";
+export type TeamReviewStatus = "pending" | "approved" | "rejected";
+
+export type TeamSubmission = {
+	id: string;
+	status: TeamReviewStatus;
+	team_name: string;
+	team_bio: string | null;
+	player_1_first_name: string;
+	player_1_last_name: string;
+	player_1_nickname: string | null;
+	player_1_email: string;
+	player_1_bio: string | null;
+	player_1_experience: Record<Sport, ExperienceLevel>;
+	player_2_first_name: string;
+	player_2_last_name: string;
+	player_2_nickname: string | null;
+	player_2_email: string;
+	player_2_bio: string | null;
+	player_2_experience: Record<Sport, ExperienceLevel>;
+	rejection_reason: string | null;
+	reviewed_by: string | null;
+	reviewed_at: string | null;
+	approved_team_id: string | null;
+	created_at: string;
+};
 
 export type PlayerSubmission = {
 	id: string;
@@ -171,6 +196,20 @@ export type Database = {
 					experience: Record<Sport, ExperienceLevel>;
 				}
 			>;
+			team_submissions: Tbl<
+				TeamSubmission,
+				Partial<TeamSubmission> & {
+					team_name: string;
+					player_1_first_name: string;
+					player_1_last_name: string;
+					player_1_email: string;
+					player_1_experience: Record<Sport, ExperienceLevel>;
+					player_2_first_name: string;
+					player_2_last_name: string;
+					player_2_email: string;
+					player_2_experience: Record<Sport, ExperienceLevel>;
+				}
+			>;
 			activity_log: Tbl<
 				ActivityLog,
 				Partial<ActivityLog> & { action: string; summary: string }
@@ -223,6 +262,10 @@ export type Database = {
 			reject_player_submission: {
 				Args: { p_submission_id: string; p_reason?: string | null };
 				Returns: PlayerSubmission;
+			};
+			reject_team_submission: {
+				Args: { p_submission_id: string; p_reason?: string | null };
+				Returns: TeamSubmission;
 			};
 			request_team_name_change: {
 				Args: { p_team_id: string; p_new_name: string };

@@ -13,6 +13,7 @@ import type {
 	Sport,
 	Team,
 	TeamMember,
+	TeamSubmission,
 	Tournament,
 	UserRole,
 } from "@/lib/database.types";
@@ -51,6 +52,7 @@ type Props = {
 	matches: unknown[];
 	flights: unknown[];
 	submissions: PlayerSubmission[];
+	teamSubmissions: TeamSubmission[];
 	activity: ActivityLog[];
 };
 
@@ -78,9 +80,9 @@ export function AdminConsole(props: Props) {
 		}
 	}
 
-	const pendingCount = props.submissions.filter(
-		(s) => s.status === "pending",
-	).length;
+	const pendingCount =
+		props.submissions.filter((s) => s.status === "pending").length +
+		props.teamSubmissions.filter((s) => s.status === "pending").length;
 	const tabs: { key: Section; label: string; badge?: number }[] = [
 		{ key: "overview", label: "Oversikt" },
 		{
@@ -165,6 +167,7 @@ export function AdminConsole(props: Props) {
 			{section === "submissions" && (
 				<SubmissionsPanel
 					submissions={props.submissions}
+					teamSubmissions={props.teamSubmissions}
 					busy={busy}
 					setBusy={setBusy}
 					setMsg={setMsg}
@@ -1440,23 +1443,52 @@ function AdminsPanel({
 
 function SubmissionsPanel({
 	submissions,
+	teamSubmissions,
 	busy,
 	setBusy,
 	setMsg,
 	router,
 }: {
 	submissions: PlayerSubmission[];
+	teamSubmissions: TeamSubmission[];
 	busy: boolean;
 	setBusy: (b: boolean) => void;
 	setMsg: (m: { kind: "ok" | "err"; text: string } | null) => void;
 	router: ReturnType<typeof useRouter>;
 }) {
 	const [filter, setFilter] = useState<"pending" | "all">("pending");
-	const list = submissions.filter((s) =>
-		filter === "all" ? true : s.status === "pending",
+	type Entry =
+		| {
+				kind: "solo";
+				created_at: string;
+				status: PlayerSubmission["status"];
+				sub: PlayerSubmission;
+		  }
+		| {
+				kind: "team";
+				created_at: string;
+				status: TeamSubmission["status"];
+				sub: TeamSubmission;
+		  };
+	const entries: Entry[] = [
+		...submissions.map<Entry>((s) => ({
+			kind: "solo",
+			created_at: s.created_at,
+			status: s.status,
+			sub: s,
+		})),
+		...teamSubmissions.map<Entry>((s) => ({
+			kind: "team",
+			created_at: s.created_at,
+			status: s.status,
+			sub: s,
+		})),
+	].sort((a, b) => b.created_at.localeCompare(a.created_at));
+	const visible = entries.filter((e) =>
+		filter === "all" ? true : e.status === "pending",
 	);
 
-	async function approve(id: string) {
+	async function approveSolo(id: string) {
 		setBusy(true);
 		setMsg(null);
 		const res = await fetch(`/api/player-submissions/${id}/approve`, {
@@ -1472,7 +1504,7 @@ function SubmissionsPanel({
 		}
 	}
 
-	async function reject(id: string) {
+	async function rejectSolo(id: string) {
 		const reason =
 			window.prompt(
 				"Valgfri begrunnelse for avvisning (kun synlig for administratorer):",
@@ -1494,6 +1526,47 @@ function SubmissionsPanel({
 		}
 	}
 
+	async function approveTeam(id: string) {
+		setBusy(true);
+		setMsg(null);
+		const res = await fetch(`/api/team-submissions/${id}/approve`, {
+			method: "POST",
+		});
+		const json = await res.json().catch(() => ({}));
+		setBusy(false);
+		if (!res.ok) {
+			setMsg({ kind: "err", text: json.message ?? "Kunne ikke godkjenne." });
+		} else {
+			setMsg({
+				kind: "ok",
+				text: "Lag godkjent — magiske lenker sendt til begge spillerne.",
+			});
+			router.refresh();
+		}
+	}
+
+	async function rejectTeam(id: string) {
+		const reason =
+			window.prompt(
+				"Valgfri begrunnelse for avvisning (kun synlig for administratorer):",
+			) ?? "";
+		setBusy(true);
+		setMsg(null);
+		const res = await fetch(`/api/team-submissions/${id}/reject`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ reason: reason || null }),
+		});
+		const json = await res.json().catch(() => ({}));
+		setBusy(false);
+		if (!res.ok) {
+			setMsg({ kind: "err", text: json.message ?? "Kunne ikke avvise." });
+		} else {
+			setMsg({ kind: "ok", text: "Lagpåmelding avvist." });
+			router.refresh();
+		}
+	}
+
 	return (
 		<div className="mt-4 space-y-3">
 			<div className="flex gap-2">
@@ -1511,7 +1584,7 @@ function SubmissionsPanel({
 				))}
 			</div>
 
-			{list.length === 0 && (
+			{visible.length === 0 && (
 				<div className="card p-6 text-center text-ink)]/60">
 					{filter === "pending"
 						? "Ingen påmeldinger venter."
@@ -1519,15 +1592,159 @@ function SubmissionsPanel({
 				</div>
 			)}
 
-			{list.map((s) => (
-				<SubmissionCard
-					key={s.id}
-					sub={s}
-					busy={busy}
-					onApprove={() => approve(s.id)}
-					onReject={() => reject(s.id)}
-				/>
-			))}
+			{visible.map((e) =>
+				e.kind === "solo" ? (
+					<SubmissionCard
+						key={`solo-${e.sub.id}`}
+						sub={e.sub}
+						busy={busy}
+						onApprove={() => approveSolo(e.sub.id)}
+						onReject={() => rejectSolo(e.sub.id)}
+					/>
+				) : (
+					<TeamSubmissionCard
+						key={`team-${e.sub.id}`}
+						sub={e.sub}
+						busy={busy}
+						onApprove={() => approveTeam(e.sub.id)}
+						onReject={() => rejectTeam(e.sub.id)}
+					/>
+				),
+			)}
+		</div>
+	);
+}
+
+function TeamSubmissionCard({
+	sub,
+	busy,
+	onApprove,
+	onReject,
+}: {
+	sub: TeamSubmission;
+	busy: boolean;
+	onApprove: () => void;
+	onReject: () => void;
+}) {
+	const [open, setOpen] = useState(false);
+	const players = [
+		{
+			label: "Spiller 1",
+			first_name: sub.player_1_first_name,
+			last_name: sub.player_1_last_name,
+			nickname: sub.player_1_nickname,
+			email: sub.player_1_email,
+			bio: sub.player_1_bio,
+			experience: sub.player_1_experience,
+		},
+		{
+			label: "Spiller 2",
+			first_name: sub.player_2_first_name,
+			last_name: sub.player_2_last_name,
+			nickname: sub.player_2_nickname,
+			email: sub.player_2_email,
+			bio: sub.player_2_bio,
+			experience: sub.player_2_experience,
+		},
+	];
+
+	return (
+		<div className="card p-4">
+			<div className="flex items-start justify-between gap-3">
+				<div className="min-w-0 flex-1">
+					<div className="flex flex-wrap items-center gap-2">
+						<KindBadge kind="team" />
+						<p className="truncate text-lg font-extrabold">{sub.team_name}</p>
+						<SubStatusBadge status={sub.status} />
+					</div>
+					<p className="mt-0.5 text-xs text-ink)]/60">
+						{new Date(sub.created_at).toLocaleString()}
+					</p>
+					{sub.team_bio && (
+						<p className="mt-2 text-sm text-ink)]/80">{sub.team_bio}</p>
+					)}
+				</div>
+			</div>
+
+			<div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+				{players.map((p) => {
+					const fullName = `${p.first_name} ${p.last_name}`.trim();
+					const display = p.nickname ? `${fullName} (${p.nickname})` : fullName;
+					return (
+						<div
+							key={p.label}
+							className="rounded-xl border-2 border-ink)] bg-cream-50)] p-3"
+						>
+							<p className="text-[10px] font-bold uppercase tracking-wider text-ink)]/60">
+								{p.label}
+							</p>
+							<p className="mt-0.5 truncate text-sm font-extrabold">
+								{display}
+							</p>
+							<p className="truncate text-xs text-ink)]/60">{p.email}</p>
+							{p.bio && <p className="mt-1 text-xs text-ink)]/75">{p.bio}</p>}
+						</div>
+					);
+				})}
+			</div>
+
+			<button
+				type="button"
+				onClick={() => setOpen((o) => !o)}
+				className="mt-3 text-xs font-bold underline opacity-70 hover:opacity-100"
+			>
+				{open ? "Skjul ferdighetsnivåer" : "Vis ferdighetsnivåer"}
+			</button>
+
+			{open && (
+				<div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+					{players.map((p) => (
+						<ul key={p.label} className="space-y-1 text-xs">
+							<li className="font-bold opacity-70">{p.label}</li>
+							{SPORTS.map((s) => (
+								<li
+									key={s.key}
+									className="flex justify-between rounded-lg border-2 border-ink)] bg-cream-50)] px-2 py-1"
+								>
+									<span>
+										{s.emoji} {s.label}
+									</span>
+									<span className="font-bold">
+										{experienceLabel(p.experience?.[s.key])}
+									</span>
+								</li>
+							))}
+						</ul>
+					))}
+				</div>
+			)}
+
+			{sub.status === "pending" && (
+				<div className="mt-4 flex flex-col gap-2 sm:flex-row">
+					<button
+						type="button"
+						onClick={onApprove}
+						disabled={busy}
+						className="btn btn-primary flex-1 disabled:opacity-50"
+					>
+						Godkjenn og inviter
+					</button>
+					<button
+						type="button"
+						onClick={onReject}
+						disabled={busy}
+						className="btn btn-secondary flex-1 disabled:opacity-50"
+					>
+						Avvis
+					</button>
+				</div>
+			)}
+
+			{sub.status === "rejected" && sub.rejection_reason && (
+				<p className="mt-3 text-xs text-terracotta-dark)]">
+					Begrunnelse: {sub.rejection_reason}
+				</p>
+			)}
 		</div>
 	);
 }
@@ -1550,7 +1767,8 @@ function SubmissionCard({
 		<div className="card p-4">
 			<div className="flex items-start justify-between gap-3">
 				<div className="min-w-0 flex-1">
-					<div className="flex items-center gap-2">
+					<div className="flex flex-wrap items-center gap-2">
+						<KindBadge kind="solo" />
 						<p className="truncate text-lg font-extrabold">{displayName}</p>
 						<SubStatusBadge status={sub.status} />
 					</div>
@@ -1615,6 +1833,18 @@ function SubmissionCard({
 				</p>
 			)}
 		</div>
+	);
+}
+
+function KindBadge({ kind }: { kind: "solo" | "team" }) {
+	const styles =
+		kind === "team" ? "bg-teal)] text-cream)]" : "bg-cream-200)] text-ink)]";
+	return (
+		<span
+			className={`rounded-full border-2 border-ink)] px-2 py-0.5 text-[10px] font-black uppercase ${styles}`}
+		>
+			{kind === "team" ? "Lag" : "Spiller"}
+		</span>
 	);
 }
 
