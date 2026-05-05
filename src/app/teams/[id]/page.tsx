@@ -1,13 +1,27 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
+import { MatchHeadline } from "@/components/match-headline";
 import { getSessionUser } from "@/lib/auth";
 import type { Profile } from "@/lib/database.types";
 import { experienceLabel, SPORTS, sportEmoji, sportLabel } from "@/lib/sports";
 import { createClient } from "@/lib/supabase/server";
-import { TeamNameControls } from "./team-name-controls";
 
 export const revalidate = 0;
+
+const dateFmt = new Intl.DateTimeFormat("nb-NO", {
+	day: "numeric",
+	month: "short",
+	hour: "2-digit",
+	minute: "2-digit",
+});
+
+function formatRegistered(iso: string | null): string | null {
+	if (!iso) return null;
+	const d = new Date(iso);
+	if (Number.isNaN(d.getTime())) return null;
+	return dateFmt.format(d);
+}
 
 export default async function TeamPage({
 	params,
@@ -128,29 +142,6 @@ export default async function TeamPage({
 					</div>
 				</div>
 
-				{(() => {
-					if (!user?.id) return null;
-					const memberRows = (members as unknown as MemberRow[]) ?? [];
-					const memberProfiles = memberRows
-						.map(memberProfile)
-						.filter((p): p is Profile => Boolean(p));
-					const isMember = memberProfiles.some((p) => p.id === user.id);
-					if (!isMember) return null;
-					const teammate = memberProfiles.find((p) => p.id !== user.id) ?? null;
-					const requester =
-						memberProfiles.find(
-							(p) => p.id === team.pending_name_requested_by,
-						) ?? null;
-					return (
-						<TeamNameControls
-							team={team}
-							currentUserId={user.id}
-							teammate={teammate}
-							requester={requester}
-						/>
-					);
-				})()}
-
 				<h2
 					className="mt-8 text-2xl"
 					style={{ fontFamily: "var(--font-display)" }}
@@ -215,9 +206,16 @@ export default async function TeamPage({
 							(m as unknown as { ta: { name: string } | null }).ta?.name ?? "?";
 						const tb =
 							(m as unknown as { tb: { name: string } | null }).tb?.name ?? "?";
-						const _isUs = (n: "a" | "b") =>
-							n === "a" ? m.team_a === id : m.team_b === id;
 						const won = m.winner_team_id === id;
+						const registered = formatRegistered(m.submitted_at);
+						const winnerSide: "a" | "b" | null =
+							m.status === "confirmed" && m.winner_team_id
+								? m.winner_team_id === m.team_a
+									? "a"
+									: m.winner_team_id === m.team_b
+										? "b"
+										: null
+								: null;
 						return (
 							<div
 								key={m.id}
@@ -227,8 +225,16 @@ export default async function TeamPage({
 									<div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[var(--color-ink)]/60">
 										{sportEmoji(m.sport)} {sportLabel(m.sport)}
 									</div>
-									<div className="mt-1 truncate font-extrabold">
-										{ta} <span className="opacity-50">vs</span> {tb}
+									<MatchHeadline
+										teamAName={ta}
+										teamBName={tb}
+										winnerSide={winnerSide}
+										className="mt-1"
+									/>
+									<div className="text-[11px] text-[var(--color-ink)]/55">
+										{registered
+											? `Registrert ${registered}`
+											: "Ikke registrert enda"}
 									</div>
 								</div>
 								{m.status === "confirmed" ? (
@@ -256,6 +262,7 @@ export default async function TeamPage({
 							(f as unknown as { t1: { name: string } | null }).t1?.name ?? "?";
 						const t2 =
 							(f as unknown as { t2: { name: string } | null }).t2?.name ?? "?";
+						const registered = formatRegistered(f.submitted_at);
 						return (
 							<div
 								key={f.id}
@@ -268,6 +275,11 @@ export default async function TeamPage({
 									</div>
 									<div className="mt-1 truncate font-extrabold">
 										{t1} <span className="opacity-50">vs</span> {t2}
+									</div>
+									<div className="text-[11px] text-[var(--color-ink)]/55">
+										{registered
+											? `Registrert ${registered}`
+											: "Ikke registrert enda"}
 									</div>
 								</div>
 								{f.status === "confirmed" ? (

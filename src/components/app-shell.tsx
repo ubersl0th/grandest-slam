@@ -27,7 +27,7 @@ export function AppShell({ user, children, active }: Props) {
 							className="font-black tracking-wider text-sm sm:text-base"
 							style={{ fontFamily: "var(--font-display)" }}
 						>
-							GRANDEST SLAM
+							THE GRANDEST SLAM
 						</span>
 					</Link>
 					<nav className="hidden items-center gap-1 md:flex">
