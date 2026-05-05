@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { MatchHeadline } from "@/components/match-headline";
 import type {
 	ActivityLog,
 	ExperienceLevel,
@@ -1132,8 +1133,11 @@ function ResultsPanel({
 	type MatchRow = {
 		id: string;
 		sport: Sport;
+		team_a: string;
+		team_b: string;
 		score_a: number | null;
 		score_b: number | null;
+		winner_team_id: string | null;
 		status: string | null;
 		ta: { name: string } | { name: string }[] | null;
 		tb: { name: string } | { name: string }[] | null;
@@ -1148,32 +1152,48 @@ function ResultsPanel({
 					Ingen resultater enda.
 				</div>
 			)}
-			{allMatches.map((m) => (
-				<Link
-					key={m.id}
-					href={`/matches/${m.id}`}
-					className="card flex items-center gap-3 p-3 hover:-translate-y-px transition-transform"
-				>
-					<span className="rounded-full border-2 border-ink)] bg-cream-50)] px-2 py-0.5 text-[10px] font-black uppercase">
-						{sportLabel(m.sport)}
-					</span>
-					<div className="flex-1 min-w-0">
-						<p className="truncate text-sm font-extrabold">
-							{Array.isArray(m.ta) ? m.ta[0]?.name : m.ta?.name} vs{" "}
-							{Array.isArray(m.tb) ? m.tb[0]?.name : m.tb?.name}
-						</p>
-						<p className="text-xs text-ink)]/60">
-							{m.status === "confirmed"
-								? `Endelig ${m.score_a}–${m.score_b}`
-								: m.status === "pending"
-									? `Avventer ${m.score_a}–${m.score_b}`
-									: m.status === "disputed"
-										? "Bestridt"
-										: "Ikke spilt"}
-						</p>
-					</div>
-				</Link>
-			))}
+			{allMatches.map((m) => {
+				const taName =
+					(Array.isArray(m.ta) ? m.ta[0]?.name : m.ta?.name) ?? "?";
+				const tbName =
+					(Array.isArray(m.tb) ? m.tb[0]?.name : m.tb?.name) ?? "?";
+				const winnerSide: "a" | "b" | null =
+					m.status === "confirmed" && m.winner_team_id
+						? m.winner_team_id === m.team_a
+							? "a"
+							: m.winner_team_id === m.team_b
+								? "b"
+								: null
+						: null;
+				return (
+					<Link
+						key={m.id}
+						href={`/matches/${m.id}`}
+						className="card flex items-center gap-3 p-3 hover:-translate-y-px transition-transform"
+					>
+						<span className="rounded-full border-2 border-ink)] bg-cream-50)] px-2 py-0.5 text-[10px] font-black uppercase">
+							{sportLabel(m.sport)}
+						</span>
+						<div className="flex-1 min-w-0">
+							<MatchHeadline
+								teamAName={taName}
+								teamBName={tbName}
+								winnerSide={winnerSide}
+								className="text-sm"
+							/>
+							<p className="text-xs text-ink)]/60">
+								{m.status === "confirmed"
+									? `Endelig ${m.score_a}–${m.score_b}`
+									: m.status === "pending"
+										? `Avventer ${m.score_a}–${m.score_b}`
+										: m.status === "disputed"
+											? "Bestridt"
+											: "Ikke spilt"}
+							</p>
+						</div>
+					</Link>
+				);
+			})}
 			{allFlights.map((f) => (
 				<Link
 					key={f.id}

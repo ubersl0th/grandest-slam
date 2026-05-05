@@ -1,7 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getSessionUser } from "@/lib/auth";
 
-export default function LandingPage() {
+export default async function LandingPage() {
+	const user = await getSessionUser();
+	if (user) redirect("/dashboard");
 	return (
 		<main className="relative overflow-x-hidden">
 			{/* Hero */}

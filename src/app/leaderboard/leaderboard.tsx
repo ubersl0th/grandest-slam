@@ -8,20 +8,62 @@ import { createClient } from "@/lib/supabase/client";
 
 type Tab = "overall" | Sport;
 
-export function Leaderboard({ initial }: { initial: TeamTotals[] }) {
+export type FlightRow = {
+	sport: Sport;
+	round_number: number;
+	team_1: string;
+	team_2: string;
+	strokes_1: number | null;
+	strokes_2: number | null;
+};
+
+export type MatchRow = {
+	sport: Sport;
+	team_a: string;
+	team_b: string;
+	winner_team_id: string | null;
+};
+
+export function Leaderboard({
+	initial,
+	initialFlights,
+	initialMatches,
+}: {
+	initial: TeamTotals[];
+	initialFlights: FlightRow[];
+	initialMatches: MatchRow[];
+}) {
 	const [rows, setRows] = useState<TeamTotals[]>(initial);
+	const [flights, setFlights] = useState<FlightRow[]>(initialFlights);
+	const [matches, setMatches] = useState<MatchRow[]>(initialMatches);
 	const [tab, setTab] = useState<Tab>("overall");
 	const [pulse, setPulse] = useState(false);
 
 	useEffect(() => {
 		const supabase = createClient();
 		async function refresh() {
-			const { data } = await supabase
-				.from("team_totals")
-				.select("*")
-				.order("total_points", { ascending: false });
-			if (data) {
-				setRows(data);
+			const [
+				{ data: totalsData },
+				{ data: flightsData },
+				{ data: matchesData },
+			] = await Promise.all([
+				supabase
+					.from("team_totals")
+					.select("*")
+					.order("total_points", { ascending: false }),
+				supabase
+					.from("flights")
+					.select("sport, round_number, team_1, team_2, strokes_1, strokes_2")
+					.eq("status", "confirmed"),
+				supabase
+					.from("matches")
+					.select("sport, team_a, team_b, winner_team_id")
+					.eq("status", "confirmed"),
+			]);
+			if (totalsData) setRows(totalsData);
+			if (flightsData) setFlights(flightsData as FlightRow[]);
+			if (matchesData) setMatches(matchesData as MatchRow[]);
+			if (totalsData || flightsData || matchesData) {
 				setPulse(true);
 				setTimeout(() => setPulse(false), 600);
 			}
@@ -48,6 +90,66 @@ export function Leaderboard({ initial }: { initial: TeamTotals[] }) {
 			supabase.removeChannel(channel);
 		};
 	}, []);
+
+	// Map: sport → teamId → roundNumber → total strokes for that round
+	const strokesByTeamRound = useMemo(() => {
+		const map = new Map<Sport, Map<string, Map<number, number>>>();
+		for (const f of flights) {
+			if (f.sport !== "disc_golf" && f.sport !== "golf") continue;
+			const sportMap =
+				map.get(f.sport) ?? new Map<string, Map<number, number>>();
+			const add = (teamId: string, strokes: number | null) => {
+				if (strokes == null) return;
+				const teamMap = sportMap.get(teamId) ?? new Map<number, number>();
+				teamMap.set(
+					f.round_number,
+					(teamMap.get(f.round_number) ?? 0) + strokes,
+				);
+				sportMap.set(teamId, teamMap);
+			};
+			add(f.team_1, f.strokes_1);
+			add(f.team_2, f.strokes_2);
+			map.set(f.sport, sportMap);
+		}
+		return map;
+	}, [flights]);
+
+	function roundsForTeam(sport: Sport, teamId: string): [number, number][] {
+		const teamMap = strokesByTeamRound.get(sport)?.get(teamId);
+		if (!teamMap) return [];
+		return [...teamMap.entries()].sort(([a], [b]) => a - b);
+	}
+
+	// Map: sport → teamId → { wins, losses }
+	const recordByTeam = useMemo(() => {
+		const map = new Map<Sport, Map<string, { wins: number; losses: number }>>();
+		for (const m of matches) {
+			if (m.sport !== "padel" && m.sport !== "tennis") continue;
+			const sportMap =
+				map.get(m.sport) ?? new Map<string, { wins: number; losses: number }>();
+			const bump = (teamId: string, field: "wins" | "losses") => {
+				const rec = sportMap.get(teamId) ?? { wins: 0, losses: 0 };
+				rec[field] += 1;
+				sportMap.set(teamId, rec);
+			};
+			if (m.winner_team_id === m.team_a) {
+				bump(m.team_a, "wins");
+				bump(m.team_b, "losses");
+			} else if (m.winner_team_id === m.team_b) {
+				bump(m.team_b, "wins");
+				bump(m.team_a, "losses");
+			}
+			map.set(m.sport, sportMap);
+		}
+		return map;
+	}, [matches]);
+
+	function recordForTeam(
+		sport: Sport,
+		teamId: string,
+	): { wins: number; losses: number } {
+		return recordByTeam.get(sport)?.get(teamId) ?? { wins: 0, losses: 0 };
+	}
 
 	const sorted = useMemo(() => {
 		const key: keyof TeamTotals =
@@ -124,9 +226,29 @@ export function Leaderboard({ initial }: { initial: TeamTotals[] }) {
 												Frisbee {row.disc_golf_points} · Golf {row.golf_points}
 											</p>
 										)}
-										{tab !== "overall" && (
+										{(tab === "padel" || tab === "tennis") && (
 											<p className="text-xs text-ink/60">
-												{sportEmoji(tab)} {sportLabel(tab)}
+												{(() => {
+													const { wins, losses } = recordForTeam(
+														tab,
+														row.team_id,
+													);
+													if (wins === 0 && losses === 0)
+														return `${sportEmoji(tab)} ${sportLabel(tab)} · ingen kamper enda`;
+													return `${wins} seier${wins === 1 ? "" : "e"} · ${losses} tap`;
+												})()}
+											</p>
+										)}
+										{(tab === "disc_golf" || tab === "golf") && (
+											<p className="text-xs text-ink/60">
+												{(() => {
+													const rounds = roundsForTeam(tab, row.team_id);
+													if (rounds.length === 0)
+														return `${sportEmoji(tab)} ${sportLabel(tab)} · ingen runder enda`;
+													return rounds
+														.map(([r, s]) => `R${r}: ${s} slag`)
+														.join(" · ");
+												})()}
 											</p>
 										)}
 									</div>
