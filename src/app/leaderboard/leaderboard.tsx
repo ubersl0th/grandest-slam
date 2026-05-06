@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { Avatar } from "@/components/avatar";
 import type { Sport, TeamTotals } from "@/lib/database.types";
 import { SPORTS, sportEmoji, sportLabel } from "@/lib/sports";
 import { createClient } from "@/lib/supabase/client";
@@ -218,6 +219,12 @@ export function Leaderboard({
 									className="card flex items-center gap-3 p-3 md:p-4 hover:-translate-y-px transition-transform"
 								>
 									<Rank pos={i + 1} />
+									<Avatar
+										src={row.team_avatar_url}
+										name={row.team_name}
+										kind="team"
+										size={40}
+									/>
 									<div className="flex-1 min-w-0">
 										<p className="truncate font-extrabold">{row.team_name}</p>
 										{tab === "overall" && (

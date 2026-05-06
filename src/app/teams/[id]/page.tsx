@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
+import { Avatar } from "@/components/avatar";
 import { flightSides, MatchCard, matchSides } from "@/components/match-card";
 import { TeamPointsBreakdown } from "@/components/team-points-breakdown";
 import { getSessionUser } from "@/lib/auth";
@@ -56,14 +57,14 @@ export default async function TeamPage({
 	// Recent matches & flights
 	const { data: matches } = await supabase
 		.from("matches")
-		.select("*, ta:team_a(name), tb:team_b(name)")
+		.select("*, ta:team_a(name, avatar_url), tb:team_b(name, avatar_url)")
 		.or(`team_a.eq.${id},team_b.eq.${id}`)
 		.order("created_at", { ascending: false })
 		.limit(15);
 
 	const { data: flights } = await supabase
 		.from("flights")
-		.select("*, t1:team_1(name), t2:team_2(name)")
+		.select("*, t1:team_1(name, avatar_url), t2:team_2(name, avatar_url)")
 		.or(`team_1.eq.${id},team_2.eq.${id}`)
 		.order("created_at", { ascending: false })
 		.limit(15);
@@ -80,16 +81,32 @@ export default async function TeamPage({
 
 				<div className="card mt-4 p-6 md:p-8">
 					<div className="flex items-start justify-between gap-4">
-						<div className="flex-1 min-w-0">
-							<h1
-								className="text-3xl md:text-5xl"
-								style={{ fontFamily: "var(--font-display)" }}
-							>
-								{team.name}
-							</h1>
-							{team.bio && (
-								<p className="mt-3 text-[var(--color-ink)]/80">{team.bio}</p>
-							)}
+						<div className="flex min-w-0 flex-1 items-start gap-4">
+							<Avatar
+								src={team.avatar_url}
+								name={team.name}
+								kind="team"
+								size={72}
+								className="hidden sm:inline-grid"
+							/>
+							<Avatar
+								src={team.avatar_url}
+								name={team.name}
+								kind="team"
+								size={56}
+								className="inline-grid sm:hidden"
+							/>
+							<div className="min-w-0 flex-1">
+								<h1
+									className="text-3xl md:text-5xl"
+									style={{ fontFamily: "var(--font-display)" }}
+								>
+									{team.name}
+								</h1>
+								{team.bio && (
+									<p className="mt-3 text-[var(--color-ink)]/80">{team.bio}</p>
+								)}
+							</div>
 						</div>
 						<div
 							className="grid h-16 min-w-16 place-items-center rounded-xl border-2 border-[var(--color-ink)] bg-[var(--color-mustard)] px-3 text-2xl font-black"
@@ -117,9 +134,19 @@ export default async function TeamPage({
 						);
 						return (
 							<div key={profile.id} className="card p-4">
-								<p className="text-lg font-extrabold">{profile.full_name}</p>
+								<div className="flex items-center gap-3">
+									<Avatar
+										src={profile.avatar_url}
+										name={profile.full_name}
+										kind="player"
+										size={48}
+									/>
+									<p className="min-w-0 truncate text-lg font-extrabold">
+										{profile.full_name}
+									</p>
+								</div>
 								{profile.bio && (
-									<p className="mt-1 text-sm text-[var(--color-ink)]/70">
+									<p className="mt-2 text-sm text-[var(--color-ink)]/70">
 										{profile.bio}
 									</p>
 								)}
@@ -159,15 +186,23 @@ export default async function TeamPage({
 						</div>
 					)}
 					{(matches ?? []).map((m) => {
-						const ta =
-							(m as unknown as { ta: { name: string } | null }).ta?.name ?? "?";
-						const tb =
-							(m as unknown as { tb: { name: string } | null }).tb?.name ?? "?";
+						const taRel = (
+							m as unknown as {
+								ta: { name: string; avatar_url: string | null } | null;
+							}
+						).ta;
+						const tbRel = (
+							m as unknown as {
+								tb: { name: string; avatar_url: string | null } | null;
+							}
+						).tb;
 						const sides = matchSides({
 							teamAId: m.team_a,
-							teamAName: ta,
+							teamAName: taRel?.name ?? "?",
+							teamAAvatarUrl: taRel?.avatar_url ?? null,
 							teamBId: m.team_b,
-							teamBName: tb,
+							teamBName: tbRel?.name ?? "?",
+							teamBAvatarUrl: tbRel?.avatar_url ?? null,
 							scoreA: m.score_a,
 							scoreB: m.score_b,
 							winnerTeamId: m.winner_team_id,
@@ -187,15 +222,23 @@ export default async function TeamPage({
 						);
 					})}
 					{(flights ?? []).map((f) => {
-						const t1 =
-							(f as unknown as { t1: { name: string } | null }).t1?.name ?? "?";
-						const t2 =
-							(f as unknown as { t2: { name: string } | null }).t2?.name ?? "?";
+						const t1Rel = (
+							f as unknown as {
+								t1: { name: string; avatar_url: string | null } | null;
+							}
+						).t1;
+						const t2Rel = (
+							f as unknown as {
+								t2: { name: string; avatar_url: string | null } | null;
+							}
+						).t2;
 						const sides = flightSides({
 							team1Id: f.team_1,
-							team1Name: t1,
+							team1Name: t1Rel?.name ?? "?",
+							team1AvatarUrl: t1Rel?.avatar_url ?? null,
 							team2Id: f.team_2,
-							team2Name: t2,
+							team2Name: t2Rel?.name ?? "?",
+							team2AvatarUrl: t2Rel?.avatar_url ?? null,
 							strokes1: f.strokes_1,
 							strokes2: f.strokes_2,
 							status: f.status,

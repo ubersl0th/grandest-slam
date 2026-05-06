@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
+import { Avatar } from "@/components/avatar";
 import { getSessionUser } from "@/lib/auth";
 import { sportEmoji, sportLabel } from "@/lib/sports";
 import { createClient } from "@/lib/supabase/server";
@@ -22,7 +23,7 @@ export default async function MatchDetailPage({
 	const { data: match } = await supabase
 		.from("matches")
 		.select(
-			"*, ta:team_a(id,name), tb:team_b(id,name), submitter:submitted_by(full_name)",
+			"*, ta:team_a(id,name,avatar_url), tb:team_b(id,name,avatar_url), submitter:submitted_by(full_name)",
 		)
 		.eq("id", id)
 		.maybeSingle();
@@ -53,15 +54,33 @@ export default async function MatchDetailPage({
 						{sportEmoji(m.sport)} {sportLabel(m.sport)}
 					</p>
 					<h1
-						className="mt-3 text-3xl md:text-4xl"
+						className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-2xl sm:text-3xl md:text-4xl"
 						style={{ fontFamily: "var(--font-display)" }}
 					>
-						<Link href={`/teams/${m.team_a}`} className="hover:underline">
-							{teamName(m.ta)}
+						<Link
+							href={`/teams/${m.team_a}`}
+							className="flex min-w-0 items-center gap-2 hover:underline"
+						>
+							<Avatar
+								src={teamAvatar(m.ta)}
+								name={teamName(m.ta)}
+								kind="team"
+								size={40}
+							/>
+							<span className="truncate">{teamName(m.ta)}</span>
 						</Link>
-						<span className="mx-2 opacity-50">vs</span>
-						<Link href={`/teams/${m.team_b}`} className="hover:underline">
-							{teamName(m.tb)}
+						<span className="opacity-50">vs</span>
+						<Link
+							href={`/teams/${m.team_b}`}
+							className="flex min-w-0 items-center gap-2 hover:underline"
+						>
+							<Avatar
+								src={teamAvatar(m.tb)}
+								name={teamName(m.tb)}
+								kind="team"
+								size={40}
+							/>
+							<span className="truncate">{teamName(m.tb)}</span>
 						</Link>
 					</h1>
 				</div>
@@ -94,6 +113,11 @@ export default async function MatchDetailPage({
 	);
 }
 
+type TeamRel =
+	| { id: string; name: string; avatar_url: string | null }
+	| { id: string; name: string; avatar_url: string | null }[]
+	| null;
+
 type MatchRow = {
 	id: string;
 	sport: "padel" | "tennis";
@@ -105,16 +129,20 @@ type MatchRow = {
 	status: "pending" | "confirmed" | "disputed" | null;
 	submitted_by: string | null;
 	submitted_by_team: string | null;
-	ta: { id: string; name: string } | { id: string; name: string }[] | null;
-	tb: { id: string; name: string } | { id: string; name: string }[] | null;
+	ta: TeamRel;
+	tb: TeamRel;
 	submitter: { full_name: string } | { full_name: string }[] | null;
 };
 
-function teamName(
-	rel: { id: string; name: string } | { id: string; name: string }[] | null,
-) {
+function teamName(rel: TeamRel) {
 	if (!rel) return "?";
 	return Array.isArray(rel) ? (rel[0]?.name ?? "?") : rel.name;
+}
+function teamAvatar(rel: TeamRel): string | null {
+	if (!rel) return null;
+	return Array.isArray(rel)
+		? (rel[0]?.avatar_url ?? null)
+		: (rel.avatar_url ?? null);
 }
 function extractFullName(
 	rel: { full_name: string } | { full_name: string }[] | null,

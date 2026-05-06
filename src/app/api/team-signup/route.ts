@@ -19,17 +19,20 @@ export async function POST(req: Request) {
 	const { error } = await supabase.from("team_submissions").insert({
 		team_name: data.team_name,
 		team_bio: data.team_bio || null,
+		team_avatar_url: data.team_avatar_url || null,
 		player_1_first_name: data.player_1.first_name,
 		player_1_last_name: data.player_1.last_name,
 		player_1_nickname: data.player_1.nickname || null,
 		player_1_email: data.player_1.email,
 		player_1_bio: data.player_1.bio || null,
+		player_1_avatar_url: data.player_1.avatar_url || null,
 		player_1_experience: data.player_1.experience,
 		player_2_first_name: data.player_2.first_name,
 		player_2_last_name: data.player_2.last_name,
 		player_2_nickname: data.player_2.nickname || null,
 		player_2_email: data.player_2.email,
 		player_2_bio: data.player_2.bio || null,
+		player_2_avatar_url: data.player_2.avatar_url || null,
 		player_2_experience: data.player_2.experience,
 	});
 

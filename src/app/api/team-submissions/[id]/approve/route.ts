@@ -13,17 +13,20 @@ type SubmissionRow = {
 	status: "pending" | "approved" | "rejected";
 	team_name: string;
 	team_bio: string | null;
+	team_avatar_url: string | null;
 	player_1_first_name: string;
 	player_1_last_name: string;
 	player_1_nickname: string | null;
 	player_1_email: string;
 	player_1_bio: string | null;
+	player_1_avatar_url: string | null;
 	player_1_experience: unknown;
 	player_2_first_name: string;
 	player_2_last_name: string;
 	player_2_nickname: string | null;
 	player_2_email: string;
 	player_2_bio: string | null;
+	player_2_avatar_url: string | null;
 	player_2_experience: unknown;
 };
 
@@ -33,6 +36,7 @@ type PlayerInput = {
 	nickname: string | null;
 	email: string;
 	bio: string | null;
+	avatar_url: string | null;
 	experience: ExperienceMap;
 };
 
@@ -110,6 +114,7 @@ export async function POST(
 			nickname: sub.player_1_nickname,
 			email: sub.player_1_email.toLowerCase(),
 			bio: sub.player_1_bio,
+			avatar_url: sub.player_1_avatar_url,
 			experience: sub.player_1_experience as ExperienceMap,
 		},
 		{
@@ -118,6 +123,7 @@ export async function POST(
 			nickname: sub.player_2_nickname,
 			email: sub.player_2_email.toLowerCase(),
 			bio: sub.player_2_bio,
+			avatar_url: sub.player_2_avatar_url,
 			experience: sub.player_2_experience as ExperienceMap,
 		},
 	];
@@ -189,6 +195,7 @@ export async function POST(
 				last_name: p.last_name,
 				nickname: p.nickname,
 				bio: p.bio,
+				avatar_url: p.avatar_url,
 			})
 			.eq("id", userId);
 		if (profileErr) {
@@ -237,7 +244,11 @@ export async function POST(
 	// 8. Create the team and add both members.
 	const { data: team, error: teamErr } = await supabase
 		.from("teams")
-		.insert({ name: sub.team_name, bio: sub.team_bio })
+		.insert({
+			name: sub.team_name,
+			bio: sub.team_bio,
+			avatar_url: sub.team_avatar_url,
+		})
 		.select()
 		.single();
 	if (teamErr || !team) {

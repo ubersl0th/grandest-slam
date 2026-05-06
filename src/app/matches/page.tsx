@@ -16,11 +16,11 @@ export default async function MatchesPage() {
 	const [{ data: matches }, { data: flights }] = await Promise.all([
 		supabase
 			.from("matches")
-			.select("*, ta:team_a(name), tb:team_b(name)")
+			.select("*, ta:team_a(name, avatar_url), tb:team_b(name, avatar_url)")
 			.order("created_at", { ascending: false }),
 		supabase
 			.from("flights")
-			.select("*, t1:team_1(name), t2:team_2(name)")
+			.select("*, t1:team_1(name, avatar_url), t2:team_2(name, avatar_url)")
 			.order("round_number", { ascending: true })
 			.order("created_at", { ascending: false }),
 	]);

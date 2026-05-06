@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { MatchHeadline } from "@/components/match-headline";
+import { Avatar } from "@/components/avatar";
+import { flightSides, MatchCard, matchSides } from "@/components/match-card";
 import type {
 	ActivityLog,
 	ExperienceLevel,
@@ -11,19 +12,14 @@ import type {
 	PlayerSubmission,
 	Profile,
 	Sport,
+	SubmissionStatus,
 	Team,
 	TeamMember,
 	TeamSubmission,
 	Tournament,
 	UserRole,
 } from "@/lib/database.types";
-import {
-	EXPERIENCE_WEIGHTS,
-	experienceLabel,
-	SPORTS,
-	sportEmoji,
-	sportLabel,
-} from "@/lib/sports";
+import { EXPERIENCE_WEIGHTS, experienceLabel, SPORTS } from "@/lib/sports";
 import { createClient } from "@/lib/supabase/client";
 import {
 	type BalancePlayer,
@@ -264,8 +260,8 @@ function Overview({
 	return (
 		<div className="mt-4 space-y-4">
 			<div className="card p-5">
-				<div className="flex items-center justify-between">
-					<div>
+				<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+					<div className="min-w-0">
 						<p className="text-xs font-bold uppercase tracking-widest text-ink/60">
 							Status
 						</p>
@@ -279,13 +275,13 @@ function Overview({
 							{teamCount} {teamCount === 1 ? "lag" : "lag"} påmeldt
 						</p>
 					</div>
-					<div className="flex flex-col gap-2">
+					<div className="flex flex-col gap-2 sm:items-end">
 						{status !== "active" && (
 							<button
 								type="button"
 								onClick={onStart}
 								disabled={busy || teamCount < 2}
-								className="btn btn-primary disabled:opacity-50"
+								className="btn btn-primary w-full disabled:opacity-50 sm:w-auto"
 							>
 								Start turnering
 							</button>
@@ -295,7 +291,7 @@ function Overview({
 								type="button"
 								onClick={onEnd}
 								disabled={busy}
-								className="btn btn-secondary disabled:opacity-50"
+								className="btn btn-secondary w-full disabled:opacity-50 sm:w-auto"
 							>
 								Avslutt turnering
 							</button>
@@ -328,7 +324,7 @@ function Overview({
 						type="button"
 						onClick={onGenerateRoundRobin}
 						disabled={busy || teamCount < 2}
-						className="btn btn-secondary disabled:opacity-50"
+						className="btn btn-secondary w-full disabled:opacity-50 sm:w-auto"
 					>
 						Generer serieoppsett (Padel og Tennis)
 					</button>
@@ -532,8 +528,8 @@ function TeamsPanel({
 
 	return (
 		<div className="mt-4 space-y-4">
-			<div className="card p-5">
-				<div className="flex flex-wrap items-start justify-between gap-3">
+			<div className="card p-4 sm:p-5">
+				<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 					<div>
 						<h3 className="text-lg font-extrabold">Spillerliste</h3>
 						<p className="mt-1 text-sm text-ink/70">
@@ -541,12 +537,12 @@ function TeamsPanel({
 							{teams.length === 1 ? "lag" : "lag"}
 						</p>
 					</div>
-					<div className="flex flex-wrap gap-2">
+					<div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
 						<button
 							type="button"
 							onClick={generatePreview}
 							disabled={busy || generating || unassigned.length < 2}
-							className="btn btn-primary disabled:opacity-50"
+							className="btn btn-primary w-full disabled:opacity-50 sm:w-auto"
 						>
 							{generating ? "Regner ut…" : "Generer lag automatisk"}
 						</button>
@@ -554,7 +550,7 @@ function TeamsPanel({
 							type="button"
 							onClick={createEmptyTeam}
 							disabled={busy}
-							className="btn btn-secondary disabled:opacity-50"
+							className="btn btn-secondary w-full disabled:opacity-50 sm:w-auto"
 						>
 							Legg til tomt lag
 						</button>
@@ -695,30 +691,38 @@ function UnassignedChip({
 			)
 		: 0;
 	return (
-		<div className="rounded-xl border-2 border-ink bg-cream-50 p-2">
-			<p className="text-sm font-extrabold">
-				{profile.nickname || profile.full_name}
-			</p>
-			<p className="text-[10px] uppercase tracking-wider text-ink/60">
-				nivå {total}
-			</p>
-			{eligibleTeams.length > 0 && (
-				<select
-					disabled={busy}
-					defaultValue=""
-					onChange={(e) => {
-						if (e.target.value) onAssign(e.target.value);
-					}}
-					className="mt-1 w-full rounded-full border-2 border-ink bg-cream px-2 py-1 text-[11px] font-bold"
-				>
-					<option value="">Legg til på lag…</option>
-					{eligibleTeams.map((t) => (
-						<option key={t.id} value={t.id}>
-							{t.name}
-						</option>
-					))}
-				</select>
-			)}
+		<div className="flex min-w-[180px] items-start gap-2 rounded-xl border-2 border-ink bg-cream-50 p-2">
+			<Avatar
+				src={profile.avatar_url}
+				name={profile.full_name}
+				kind="player"
+				size={32}
+			/>
+			<div className="min-w-0 flex-1">
+				<p className="truncate text-sm font-extrabold">
+					{profile.nickname || profile.full_name}
+				</p>
+				<p className="text-[10px] uppercase tracking-wider text-ink/60">
+					nivå {total}
+				</p>
+				{eligibleTeams.length > 0 && (
+					<select
+						disabled={busy}
+						defaultValue=""
+						onChange={(e) => {
+							if (e.target.value) onAssign(e.target.value);
+						}}
+						className="mt-1 w-full rounded-full border-2 border-ink bg-cream px-2 py-1 text-[11px] font-bold"
+					>
+						<option value="">Legg til på lag…</option>
+						{eligibleTeams.map((t) => (
+							<option key={t.id} value={t.id}>
+								{t.name}
+							</option>
+						))}
+					</select>
+				)}
+			</div>
 		</div>
 	);
 }
@@ -801,12 +805,34 @@ function PreviewPanel({
 							<p className="text-xs font-bold uppercase tracking-wider text-ink/60">
 								Lag {idx + 1}
 							</p>
-							<p className="mt-0.5 text-base font-extrabold">
-								{a?.nickname || a?.full_name}{" "}
-								<span className="opacity-50">+</span>{" "}
-								{b?.nickname || b?.full_name}
-							</p>
-							<ul className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-ink/70">
+							<div className="mt-1 flex flex-wrap items-center gap-2">
+								<span className="inline-flex min-w-0 items-center gap-2 text-base font-extrabold">
+									<Avatar
+										src={a?.avatar_url}
+										name={a?.full_name}
+										kind="player"
+										size={28}
+									/>
+									<span className="truncate">
+										{a?.nickname || a?.full_name}
+									</span>
+								</span>
+								<span aria-hidden className="opacity-50">
+									+
+								</span>
+								<span className="inline-flex min-w-0 items-center gap-2 text-base font-extrabold">
+									<Avatar
+										src={b?.avatar_url}
+										name={b?.full_name}
+										kind="player"
+										size={28}
+									/>
+									<span className="truncate">
+										{b?.nickname || b?.full_name}
+									</span>
+								</span>
+							</div>
+							<ul className="mt-2 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-ink/70">
 								{SPORTS.map((s) => (
 									<li key={s.key}>
 										{s.emoji}{" "}
@@ -818,17 +844,28 @@ function PreviewPanel({
 						</div>
 					);
 				})}
-				{preview.unassigned && (
-					<div className="rounded-xl border-2 border-dashed border-ink bg-cream-50 p-3">
-						<p className="text-xs font-bold uppercase tracking-wider text-ink/60">
-							Uten lag (oddetall spillere)
-						</p>
-						<p className="mt-0.5 font-extrabold">
-							{profilesById.get(preview.unassigned.id)?.nickname ||
-								profilesById.get(preview.unassigned.id)?.full_name}
-						</p>
-					</div>
-				)}
+				{preview.unassigned &&
+					(() => {
+						const u = profilesById.get(preview.unassigned.id);
+						return (
+							<div className="rounded-xl border-2 border-dashed border-ink bg-cream-50 p-3">
+								<p className="text-xs font-bold uppercase tracking-wider text-ink/60">
+									Uten lag (oddetall spillere)
+								</p>
+								<div className="mt-1 inline-flex items-center gap-2">
+									<Avatar
+										src={u?.avatar_url}
+										name={u?.full_name}
+										kind="player"
+										size={28}
+									/>
+									<span className="font-extrabold">
+										{u?.nickname || u?.full_name}
+									</span>
+								</div>
+							</div>
+						);
+					})()}
 			</div>
 		</div>
 	);
@@ -858,12 +895,13 @@ function TeamCard({
 	const canAdd = members.length < 2 && unassigned.length > 0;
 
 	return (
-		<div className="card p-3">
-			<div className="flex items-center gap-3">
-				<div className="flex-1 min-w-0">
+		<div className="card p-3 sm:p-4">
+			<div className="flex items-start gap-3">
+				<Avatar src={team.avatar_url} name={team.name} kind="team" size={44} />
+				<div className="min-w-0 flex-1">
 					{editing ? (
 						<input
-							className="input"
+							className="input !py-1.5 !text-base"
 							value={name}
 							onChange={(e) => setName(e.target.value)}
 							onBlur={() => {
@@ -875,13 +913,20 @@ function TeamCard({
 					) : (
 						<Link
 							href={`/teams/${team.id}`}
-							className="block truncate font-extrabold hover:underline"
+							className="block truncate text-base font-extrabold hover:underline"
 						>
 							{team.name}
 						</Link>
 					)}
-					{team.bio && <p className="mt-0.5 text-xs text-ink/60">{team.bio}</p>}
+					{team.bio && (
+						<p className="mt-0.5 line-clamp-2 text-xs text-ink/60">
+							{team.bio}
+						</p>
+					)}
 				</div>
+			</div>
+
+			<div className="mt-3 flex flex-wrap gap-2">
 				<button
 					type="button"
 					onClick={() => setEditing((e) => !e)}
@@ -895,30 +940,38 @@ function TeamCard({
 					disabled={busy}
 					className="rounded-full border-2 border-ink bg-terracotta px-3 py-1 text-xs font-bold text-cream disabled:opacity-50"
 				>
-					Slett
+					Slett laget
 				</button>
 			</div>
 
-			<div className="mt-3 space-y-1">
+			<div className="mt-3 space-y-2">
 				{members.length === 0 && (
-					<p className="text-xs italic textink/60">Ingen medlemmer.</p>
+					<p className="text-xs italic text-ink/60">Ingen medlemmer.</p>
 				)}
 				{members.map((m) => (
 					<div
 						key={m.id}
-						className="flex items-center justify-between gap-2 rounded-lg border-2 borderink bgcream-50 px-3 py-1.5"
+						className="flex items-center justify-between gap-3 rounded-xl border-2 border-ink bg-cream-50 px-2.5 py-2"
 					>
-						<div className="min-w-0 flex-1">
-							<p className="truncate text-sm font-bold">
-								{m.nickname || m.full_name}
-							</p>
-							<p className="truncate text-[10px] textink/60">{m.email}</p>
+						<div className="flex min-w-0 flex-1 items-center gap-2.5">
+							<Avatar
+								src={m.avatar_url}
+								name={m.full_name}
+								kind="player"
+								size={32}
+							/>
+							<div className="min-w-0">
+								<p className="truncate text-sm font-bold">
+									{m.nickname || m.full_name}
+								</p>
+								<p className="truncate text-[10px] text-ink/60">{m.email}</p>
+							</div>
 						</div>
 						<button
 							type="button"
 							onClick={() => onRemoveMember(m.id)}
 							disabled={busy}
-							className="rounded-full border-2 border-ink bg-cream px-2 py-0.5 text-[10px] font-bold disabled:opacity-50"
+							className="shrink-0 rounded-full border-2 border-ink bg-cream px-2.5 py-1 text-[11px] font-bold disabled:opacity-50"
 						>
 							Fjern
 						</button>
@@ -931,9 +984,9 @@ function TeamCard({
 						onChange={(e) => {
 							if (e.target.value) onAddMember(e.target.value);
 						}}
-						className="w-full rounded-lg border-2 border-ink bg-cream px-2 py-1 text-xs font-bold"
+						className="input !py-2 !text-sm"
 					>
-						<option value="">Legg til spiller…</option>
+						<option value="">+ Legg til spiller…</option>
 						{unassigned.map((p) => (
 							<option key={p.id} value={p.id}>
 								{p.nickname || p.full_name} ({p.email})
@@ -1041,7 +1094,7 @@ function SchedulePanel({
 							"Runde lagt til.",
 						)
 					}
-					className="btn btn-primary mt-4 disabled:opacity-50"
+					className="btn btn-primary mt-4 w-full disabled:opacity-50 sm:w-auto"
 				>
 					Legg til runde
 				</button>
@@ -1081,9 +1134,12 @@ type FlightWithTeams = {
 	round_number: number;
 	team_1: string;
 	team_2: string;
-	status: string | null;
-	t1: { name: string } | { name: string }[] | null;
-	t2: { name: string } | { name: string }[] | null;
+	strokes_1: number | null;
+	strokes_2: number | null;
+	status: SubmissionStatus | null;
+	submitted_at: string | null;
+	t1: TeamRel;
+	t2: TeamRel;
 };
 
 function FlightRow({
@@ -1095,33 +1151,38 @@ function FlightRow({
 	busy: boolean;
 	onDelete: () => void;
 }) {
-	const t1 = Array.isArray(flight.t1) ? flight.t1[0]?.name : flight.t1?.name;
-	const t2 = Array.isArray(flight.t2) ? flight.t2[0]?.name : flight.t2?.name;
+	const sides = flightSides({
+		team1Id: flight.team_1,
+		team1Name: relName(flight.t1),
+		team1AvatarUrl: relAvatar(flight.t1),
+		team2Id: flight.team_2,
+		team2Name: relName(flight.t2),
+		team2AvatarUrl: relAvatar(flight.t2),
+		strokes1: flight.strokes_1,
+		strokes2: flight.strokes_2,
+		status: flight.status,
+	});
 	return (
-		<div className="card flex items-center gap-3 p-3">
-			<div className="flex-1 min-w-0">
-				<p className="text-xs font-bold uppercase tracking-wider text-ink/60">
-					{sportEmoji(flight.sport)} {sportLabel(flight.sport)} · R
-					{flight.round_number}
-				</p>
-				<p className="mt-1 truncate font-extrabold">
-					{t1} <span className="opacity-50">vs</span> {t2}
-				</p>
-			</div>
-			<Link
+		<div className="space-y-2">
+			<MatchCard
 				href={`/matches/flight/${flight.id}`}
-				className="rounded-full border-2 border-ink bg-cream-50 px-3 py-1 text-xs font-bold"
-			>
-				Åpne
-			</Link>
-			<button
-				type="button"
-				onClick={onDelete}
-				disabled={busy}
-				className="rounded-full border-2 border-ink bg-terracotta px-3 py-1 text-xs font-bold text-cream disabled:opacity-50"
-			>
-				Slett
-			</button>
+				sport={flight.sport}
+				round={flight.round_number}
+				status={flight.status}
+				submittedAt={flight.submitted_at}
+				teamA={sides.teamA}
+				teamB={sides.teamB}
+			/>
+			<div className="flex justify-end">
+				<button
+					type="button"
+					onClick={onDelete}
+					disabled={busy}
+					className="rounded-full border-2 border-ink bg-terracotta px-3 py-1 text-xs font-bold text-cream disabled:opacity-50"
+				>
+					Slett runde
+				</button>
+			</div>
 		</div>
 	);
 }
@@ -1133,90 +1194,161 @@ function ResultsPanel({
 	matches: unknown[];
 	flights: unknown[];
 }) {
-	type MatchRow = {
-		id: string;
-		sport: Sport;
-		team_a: string;
-		team_b: string;
-		score_a: number | null;
-		score_b: number | null;
-		winner_team_id: string | null;
-		status: string | null;
-		ta: { name: string } | { name: string }[] | null;
-		tb: { name: string } | { name: string }[] | null;
-	};
-	const allMatches = matches as MatchRow[];
+	const [filter, setFilter] = useState<
+		"all" | "pending" | "confirmed" | "disputed"
+	>("all");
+	const allMatches = matches as MatchWithTeams[];
 	const allFlights = flights as FlightWithTeams[];
 
+	const visibleMatches = allMatches.filter((m) =>
+		filter === "all" ? true : m.status === filter,
+	);
+	const visibleFlights = allFlights.filter((f) =>
+		filter === "all" ? true : f.status === filter,
+	);
+
+	const tabs: { key: typeof filter; label: string; count: number }[] = [
+		{
+			key: "all",
+			label: "Alle",
+			count: allMatches.length + allFlights.length,
+		},
+		{
+			key: "pending",
+			label: "Avventer",
+			count:
+				allMatches.filter((m) => m.status === "pending").length +
+				allFlights.filter((f) => f.status === "pending").length,
+		},
+		{
+			key: "confirmed",
+			label: "Bekreftet",
+			count:
+				allMatches.filter((m) => m.status === "confirmed").length +
+				allFlights.filter((f) => f.status === "confirmed").length,
+		},
+		{
+			key: "disputed",
+			label: "Bestridt",
+			count:
+				allMatches.filter((m) => m.status === "disputed").length +
+				allFlights.filter((f) => f.status === "disputed").length,
+		},
+	];
+
 	return (
-		<div className="mt-4 space-y-2">
-			{allMatches.length === 0 && allFlights.length === 0 && (
-				<div className="card p-6 text-center text-ink)]/60">
-					Ingen resultater enda.
+		<div className="mt-4 space-y-3">
+			<div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-2">
+				{tabs.map((t) => (
+					<button
+						type="button"
+						key={t.key}
+						onClick={() => setFilter(t.key)}
+						className={`shrink-0 rounded-full border-2 border-ink px-3 py-1 text-xs font-bold transition ${
+							filter === t.key ? "bg-ink text-cream" : "bg-cream-50"
+						}`}
+					>
+						{t.label}
+						{t.count > 0 && (
+							<span className="ml-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-cream/40 px-1.5 text-[10px] font-black">
+								{t.count}
+							</span>
+						)}
+					</button>
+				))}
+			</div>
+
+			{visibleMatches.length === 0 && visibleFlights.length === 0 && (
+				<div className="card p-6 text-center text-ink/60">
+					Ingenting å vise her.
 				</div>
 			)}
-			{allMatches.map((m) => {
-				const taName =
-					(Array.isArray(m.ta) ? m.ta[0]?.name : m.ta?.name) ?? "?";
-				const tbName =
-					(Array.isArray(m.tb) ? m.tb[0]?.name : m.tb?.name) ?? "?";
-				const winnerSide: "a" | "b" | null =
-					m.status === "confirmed" && m.winner_team_id
-						? m.winner_team_id === m.team_a
-							? "a"
-							: m.winner_team_id === m.team_b
-								? "b"
-								: null
-						: null;
-				return (
-					<Link
-						key={m.id}
-						href={`/matches/${m.id}`}
-						className="card flex items-center gap-3 p-3 hover:-translate-y-px transition-transform"
-					>
-						<span className="rounded-full border-2 border-ink)] bg-cream-50)] px-2 py-0.5 text-[10px] font-black uppercase">
-							{sportLabel(m.sport)}
-						</span>
-						<div className="flex-1 min-w-0">
-							<MatchHeadline
-								teamAName={taName}
-								teamBName={tbName}
-								winnerSide={winnerSide}
-								className="text-sm"
-							/>
-							<p className="text-xs text-ink)]/60">
-								{m.status === "confirmed"
-									? `Endelig ${m.score_a}–${m.score_b}`
-									: m.status === "pending"
-										? `Avventer ${m.score_a}–${m.score_b}`
-										: m.status === "disputed"
-											? "Bestridt"
-											: "Ikke spilt"}
-							</p>
-						</div>
-					</Link>
-				);
-			})}
-			{allFlights.map((f) => (
-				<Link
-					key={f.id}
-					href={`/matches/flight/${f.id}`}
-					className="card flex items-center gap-3 p-3 hover:-translate-y-px transition-transform"
-				>
-					<span className="rounded-full border-2 border-ink)] bg-cream-50)] px-2 py-0.5 text-[10px] font-black uppercase">
-						{sportLabel(f.sport)} R{f.round_number}
-					</span>
-					<div className="flex-1 min-w-0">
-						<p className="truncate text-sm font-extrabold">
-							{Array.isArray(f.t1) ? f.t1[0]?.name : f.t1?.name} vs{" "}
-							{Array.isArray(f.t2) ? f.t2[0]?.name : f.t2?.name}
-						</p>
-					</div>
-				</Link>
-			))}
+
+			<div className="space-y-3">
+				{visibleMatches.map((m) => {
+					const sides = matchSides({
+						teamAId: m.team_a,
+						teamAName: relName(m.ta),
+						teamAAvatarUrl: relAvatar(m.ta),
+						teamBId: m.team_b,
+						teamBName: relName(m.tb),
+						teamBAvatarUrl: relAvatar(m.tb),
+						scoreA: m.score_a,
+						scoreB: m.score_b,
+						winnerTeamId: m.winner_team_id,
+						status: m.status,
+					});
+					return (
+						<MatchCard
+							key={m.id}
+							href={`/matches/${m.id}`}
+							sport={m.sport}
+							status={m.status}
+							submittedAt={m.submitted_at}
+							teamA={sides.teamA}
+							teamB={sides.teamB}
+						/>
+					);
+				})}
+				{visibleFlights.map((f) => {
+					const sides = flightSides({
+						team1Id: f.team_1,
+						team1Name: relName(f.t1),
+						team1AvatarUrl: relAvatar(f.t1),
+						team2Id: f.team_2,
+						team2Name: relName(f.t2),
+						team2AvatarUrl: relAvatar(f.t2),
+						strokes1: f.strokes_1,
+						strokes2: f.strokes_2,
+						status: f.status,
+					});
+					return (
+						<MatchCard
+							key={f.id}
+							href={`/matches/flight/${f.id}`}
+							sport={f.sport}
+							round={f.round_number}
+							status={f.status}
+							submittedAt={f.submitted_at}
+							teamA={sides.teamA}
+							teamB={sides.teamB}
+						/>
+					);
+				})}
+			</div>
 		</div>
 	);
 }
+
+type TeamRel =
+	| { name: string; avatar_url: string | null }
+	| { name: string; avatar_url: string | null }[]
+	| null;
+
+function relName(rel: TeamRel): string {
+	if (!rel) return "?";
+	return Array.isArray(rel) ? (rel[0]?.name ?? "?") : rel.name;
+}
+function relAvatar(rel: TeamRel): string | null {
+	if (!rel) return null;
+	return Array.isArray(rel)
+		? (rel[0]?.avatar_url ?? null)
+		: (rel.avatar_url ?? null);
+}
+
+type MatchWithTeams = {
+	id: string;
+	sport: Sport;
+	team_a: string;
+	team_b: string;
+	score_a: number | null;
+	score_b: number | null;
+	winner_team_id: string | null;
+	status: SubmissionStatus | null;
+	submitted_at: string | null;
+	ta: TeamRel;
+	tb: TeamRel;
+};
 
 function PlayersPanel({
 	profiles,
@@ -1325,16 +1457,31 @@ function PlayerRow({
 
 	return (
 		<div className="card flex flex-wrap items-center gap-3 p-3">
-			<div className="min-w-0 flex-1">
-				<p className="truncate font-extrabold">{profile.full_name}</p>
-				<p className="truncate text-xs text-ink/60">{profile.email}</p>
-				{team && (
-					<p className="mt-0.5 text-[11px] font-bold text-ink/70">
-						Lag: {team.name}
-					</p>
-				)}
+			<div className="flex min-w-0 flex-1 items-center gap-3">
+				<Avatar
+					src={profile.avatar_url}
+					name={profile.full_name}
+					kind="player"
+					size={40}
+				/>
+				<div className="min-w-0 flex-1">
+					<p className="truncate font-extrabold">{profile.full_name}</p>
+					<p className="truncate text-xs text-ink/60">{profile.email}</p>
+					{team && (
+						<p className="mt-0.5 inline-flex min-w-0 items-center gap-1.5 text-[11px] font-bold text-ink/70">
+							<span>Lag:</span>
+							<Avatar
+								src={team.avatar_url}
+								name={team.name}
+								kind="team"
+								size={16}
+							/>
+							<span className="truncate">{team.name}</span>
+						</p>
+					)}
+				</div>
 			</div>
-			<div className="flex items-center gap-2">
+			<div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
 				{editing ? (
 					<>
 						<input
@@ -1405,36 +1552,46 @@ function AdminsPanel({
 }) {
 	return (
 		<div className="mt-4 space-y-2">
-			<p className="text-sm text-ink)]/70">
+			<p className="text-sm text-ink/70">
 				Gi spillere administratorrolle slik at de kan administrere lag og løse
 				tvister. Superadministrator kan ikke endres fra grensesnittet.
 			</p>
 			{profiles.map((p) => (
-				<div key={p.id} className="card flex items-center gap-3 p-3">
-					<div className="flex-1 min-w-0">
-						<p className="truncate font-extrabold">{p.full_name}</p>
-						<p className="text-xs text-ink)]/60">{p.email}</p>
+				<div key={p.id} className="card flex flex-wrap items-center gap-3 p-3">
+					<div className="flex min-w-0 flex-1 items-center gap-3">
+						<Avatar
+							src={p.avatar_url}
+							name={p.full_name}
+							kind="player"
+							size={36}
+						/>
+						<div className="min-w-0 flex-1">
+							<p className="truncate font-extrabold">{p.full_name}</p>
+							<p className="truncate text-xs text-ink/60">{p.email}</p>
+						</div>
 					</div>
-					<RoleBadge role={p.role} />
-					{p.role !== "super_admin" && (
-						<select
-							disabled={busy}
-							value={p.role}
-							onChange={(e) =>
-								action(async () => {
-									const { error } = await supabase.rpc("set_user_role", {
-										p_profile_id: p.id,
-										p_role: e.target.value as UserRole,
-									});
-									return { error };
-								}, `${p.full_name} er oppdatert.`)
-							}
-							className="rounded-full border-2 border-ink)] bg-cream-50)] px-2 py-1 text-xs font-bold"
-						>
-							<option value="player">Spiller</option>
-							<option value="admin">Admin</option>
-						</select>
-					)}
+					<div className="flex w-full items-center justify-end gap-2 sm:w-auto">
+						<RoleBadge role={p.role} />
+						{p.role !== "super_admin" && (
+							<select
+								disabled={busy}
+								value={p.role}
+								onChange={(e) =>
+									action(async () => {
+										const { error } = await supabase.rpc("set_user_role", {
+											p_profile_id: p.id,
+											p_role: e.target.value as UserRole,
+										});
+										return { error };
+									}, `${p.full_name} er oppdatert.`)
+								}
+								className="rounded-full border-2 border-ink bg-cream-50 px-2 py-1 text-xs font-bold"
+							>
+								<option value="player">Spiller</option>
+								<option value="admin">Admin</option>
+							</select>
+						)}
+					</div>
 				</div>
 			))}
 		</div>
@@ -1575,8 +1732,8 @@ function SubmissionsPanel({
 						type="button"
 						key={f}
 						onClick={() => setFilter(f)}
-						className={`rounded-full border-2 border-ink)] px-3 py-1 text-xs font-bold ${
-							filter === f ? "bg-ink)] text-cream)]" : "bg-cream-50)]"
+						className={`rounded-full border-2 border-ink px-3 py-1 text-xs font-bold ${
+							filter === f ? "bg-ink text-cream" : "bg-cream-50"
 						}`}
 					>
 						{f === "pending" ? "Avventer" : "Alle"}
@@ -1585,7 +1742,7 @@ function SubmissionsPanel({
 			</div>
 
 			{visible.length === 0 && (
-				<div className="card p-6 text-center text-ink)]/60">
+				<div className="card p-6 text-center text-ink/60">
 					{filter === "pending"
 						? "Ingen påmeldinger venter."
 						: "Ingen påmeldinger enda."}
@@ -1635,6 +1792,7 @@ function TeamSubmissionCard({
 			nickname: sub.player_1_nickname,
 			email: sub.player_1_email,
 			bio: sub.player_1_bio,
+			avatar_url: sub.player_1_avatar_url,
 			experience: sub.player_1_experience,
 		},
 		{
@@ -1644,6 +1802,7 @@ function TeamSubmissionCard({
 			nickname: sub.player_2_nickname,
 			email: sub.player_2_email,
 			bio: sub.player_2_bio,
+			avatar_url: sub.player_2_avatar_url,
 			experience: sub.player_2_experience,
 		},
 	];
@@ -1651,18 +1810,26 @@ function TeamSubmissionCard({
 	return (
 		<div className="card p-4">
 			<div className="flex items-start justify-between gap-3">
-				<div className="min-w-0 flex-1">
-					<div className="flex flex-wrap items-center gap-2">
-						<KindBadge kind="team" />
-						<p className="truncate text-lg font-extrabold">{sub.team_name}</p>
-						<SubStatusBadge status={sub.status} />
+				<div className="flex min-w-0 flex-1 items-start gap-3">
+					<Avatar
+						src={sub.team_avatar_url}
+						name={sub.team_name}
+						kind="team"
+						size={44}
+					/>
+					<div className="min-w-0 flex-1">
+						<div className="flex flex-wrap items-center gap-2">
+							<KindBadge kind="team" />
+							<p className="truncate text-lg font-extrabold">{sub.team_name}</p>
+							<SubStatusBadge status={sub.status} />
+						</div>
+						<p className="mt-0.5 text-xs text-ink/60">
+							{new Date(sub.created_at).toLocaleString()}
+						</p>
+						{sub.team_bio && (
+							<p className="mt-2 text-sm text-ink/80">{sub.team_bio}</p>
+						)}
 					</div>
-					<p className="mt-0.5 text-xs text-ink)]/60">
-						{new Date(sub.created_at).toLocaleString()}
-					</p>
-					{sub.team_bio && (
-						<p className="mt-2 text-sm text-ink)]/80">{sub.team_bio}</p>
-					)}
 				</div>
 			</div>
 
@@ -1673,16 +1840,24 @@ function TeamSubmissionCard({
 					return (
 						<div
 							key={p.label}
-							className="rounded-xl border-2 border-ink)] bg-cream-50)] p-3"
+							className="flex items-start gap-3 rounded-xl border-2 border-ink bg-cream-50 p-3"
 						>
-							<p className="text-[10px] font-bold uppercase tracking-wider text-ink)]/60">
-								{p.label}
-							</p>
-							<p className="mt-0.5 truncate text-sm font-extrabold">
-								{display}
-							</p>
-							<p className="truncate text-xs text-ink)]/60">{p.email}</p>
-							{p.bio && <p className="mt-1 text-xs text-ink)]/75">{p.bio}</p>}
+							<Avatar
+								src={p.avatar_url}
+								name={fullName || p.label}
+								kind="player"
+								size={36}
+							/>
+							<div className="min-w-0 flex-1">
+								<p className="text-[10px] font-bold uppercase tracking-wider text-ink/60">
+									{p.label}
+								</p>
+								<p className="mt-0.5 truncate text-sm font-extrabold">
+									{display}
+								</p>
+								<p className="truncate text-xs text-ink/60">{p.email}</p>
+								{p.bio && <p className="mt-1 text-xs text-ink/75">{p.bio}</p>}
+							</div>
 						</div>
 					);
 				})}
@@ -1704,7 +1879,7 @@ function TeamSubmissionCard({
 							{SPORTS.map((s) => (
 								<li
 									key={s.key}
-									className="flex justify-between rounded-lg border-2 border-ink)] bg-cream-50)] px-2 py-1"
+									className="flex justify-between rounded-lg border-2 border-ink bg-cream-50 px-2 py-1"
 								>
 									<span>
 										{s.emoji} {s.label}
@@ -1741,7 +1916,7 @@ function TeamSubmissionCard({
 			)}
 
 			{sub.status === "rejected" && sub.rejection_reason && (
-				<p className="mt-3 text-xs text-terracotta-dark)]">
+				<p className="mt-3 text-xs text-terracotta-dark">
 					Begrunnelse: {sub.rejection_reason}
 				</p>
 			)}
@@ -1766,17 +1941,25 @@ function SubmissionCard({
 	return (
 		<div className="card p-4">
 			<div className="flex items-start justify-between gap-3">
-				<div className="min-w-0 flex-1">
-					<div className="flex flex-wrap items-center gap-2">
-						<KindBadge kind="solo" />
-						<p className="truncate text-lg font-extrabold">{displayName}</p>
-						<SubStatusBadge status={sub.status} />
+				<div className="flex min-w-0 flex-1 items-start gap-3">
+					<Avatar
+						src={sub.avatar_url}
+						name={fullName || sub.email}
+						kind="player"
+						size={44}
+					/>
+					<div className="min-w-0 flex-1">
+						<div className="flex flex-wrap items-center gap-2">
+							<KindBadge kind="solo" />
+							<p className="truncate text-lg font-extrabold">{displayName}</p>
+							<SubStatusBadge status={sub.status} />
+						</div>
+						<p className="mt-0.5 text-xs text-ink/60">{sub.email}</p>
+						<p className="mt-0.5 text-xs text-ink/60">
+							{new Date(sub.created_at).toLocaleString()}
+						</p>
+						{sub.bio && <p className="mt-2 text-sm text-ink/80">{sub.bio}</p>}
 					</div>
-					<p className="mt-0.5 text-xs text-ink)]/60">{sub.email}</p>
-					<p className="mt-0.5 text-xs text-ink)]/60">
-						{new Date(sub.created_at).toLocaleString()}
-					</p>
-					{sub.bio && <p className="mt-2 text-sm text-ink)]/80">{sub.bio}</p>}
 				</div>
 			</div>
 
@@ -1793,7 +1976,7 @@ function SubmissionCard({
 					{SPORTS.map((s) => (
 						<li
 							key={s.key}
-							className="flex justify-between rounded-lg border-2 border-ink)] bg-cream-50)] px-2 py-1"
+							className="flex justify-between rounded-lg border-2 border-ink bg-cream-50 px-2 py-1"
 						>
 							<span>
 								{s.emoji} {s.label}
@@ -1828,7 +2011,7 @@ function SubmissionCard({
 			)}
 
 			{sub.status === "rejected" && sub.rejection_reason && (
-				<p className="mt-3 text-xs text-terracotta-dark)]">
+				<p className="mt-3 text-xs text-terracotta-dark">
 					Begrunnelse: {sub.rejection_reason}
 				</p>
 			)}
@@ -1838,10 +2021,10 @@ function SubmissionCard({
 
 function KindBadge({ kind }: { kind: "solo" | "team" }) {
 	const styles =
-		kind === "team" ? "bg-teal)] text-cream)]" : "bg-cream-200)] text-ink)]";
+		kind === "team" ? "bg-teal text-cream" : "bg-cream-200 text-ink";
 	return (
 		<span
-			className={`rounded-full border-2 border-ink)] px-2 py-0.5 text-[10px] font-black uppercase ${styles}`}
+			className={`rounded-full border-2 border-ink px-2 py-0.5 text-[10px] font-black uppercase ${styles}`}
 		>
 			{kind === "team" ? "Lag" : "Spiller"}
 		</span>
@@ -1851,10 +2034,10 @@ function KindBadge({ kind }: { kind: "solo" | "team" }) {
 function SubStatusBadge({ status }: { status: PlayerSubmission["status"] }) {
 	const styles =
 		status === "approved"
-			? "bg-teal)] text-cream)]"
+			? "bg-teal text-cream"
 			: status === "rejected"
-				? "bg-terracotta)] text-cream)]"
-				: "bg-mustard)]";
+				? "bg-terracotta text-cream"
+				: "bg-mustard";
 	const labels: Record<PlayerSubmission["status"], string> = {
 		approved: "Godkjent",
 		rejected: "Avvist",
@@ -1862,7 +2045,7 @@ function SubStatusBadge({ status }: { status: PlayerSubmission["status"] }) {
 	};
 	return (
 		<span
-			className={`rounded-full border-2 border-ink)] px-2 py-0.5 text-[10px] font-black uppercase ${styles}`}
+			className={`rounded-full border-2 border-ink px-2 py-0.5 text-[10px] font-black uppercase ${styles}`}
 		>
 			{labels[status] ?? status}
 		</span>
@@ -1872,10 +2055,10 @@ function SubStatusBadge({ status }: { status: PlayerSubmission["status"] }) {
 function RoleBadge({ role }: { role: UserRole }) {
 	const styles =
 		role === "super_admin"
-			? "bg-plum)] text-cream)]"
+			? "bg-plum text-cream"
 			: role === "admin"
-				? "bg-mustard)]"
-				: "bg-cream-50)]";
+				? "bg-mustard"
+				: "bg-cream-50";
 	const labels: Record<UserRole, string> = {
 		super_admin: "Superadmin",
 		admin: "Admin",
@@ -1883,7 +2066,7 @@ function RoleBadge({ role }: { role: UserRole }) {
 	};
 	return (
 		<span
-			className={`rounded-full border-2 border-ink)] px-2 py-0.5 text-[10px] font-black uppercase ${styles}`}
+			className={`rounded-full border-2 border-ink px-2 py-0.5 text-[10px] font-black uppercase ${styles}`}
 		>
 			{labels[role] ?? role}
 		</span>

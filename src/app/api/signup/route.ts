@@ -22,6 +22,7 @@ export async function POST(req: Request) {
 		nickname: data.nickname || null,
 		email: data.email,
 		bio: data.bio || null,
+		avatar_url: data.avatar_url || null,
 		experience: data.experience,
 	});
 

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Avatar } from "@/components/avatar";
 import type { Sport, SubmissionStatus } from "@/lib/database.types";
 import { sportEmoji, sportLabel } from "@/lib/sports";
 
@@ -18,6 +19,7 @@ function formatRegistered(iso: string | null): string | null {
 
 export type MatchCardSide = {
 	name: string;
+	avatarUrl?: string | null;
 	score: number | null;
 	won: boolean;
 	lost: boolean;
@@ -126,6 +128,12 @@ function TeamRow({
 			className={`flex items-center justify-between gap-3 px-3 py-2.5 ${winnerBg} ${loserMute}`}
 		>
 			<div className="flex min-w-0 items-center gap-2">
+				<Avatar
+					src={side.avatarUrl ?? null}
+					name={side.name}
+					kind="team"
+					size={32}
+				/>
 				{decided && side.won && (
 					<span aria-hidden className="text-base leading-none">
 						🏆
@@ -176,8 +184,10 @@ function StatusBadge({ status }: { status: SubmissionStatus | null }) {
 export function matchSides({
 	teamAId,
 	teamAName,
+	teamAAvatarUrl,
 	teamBId,
 	teamBName,
+	teamBAvatarUrl,
 	scoreA,
 	scoreB,
 	winnerTeamId,
@@ -186,8 +196,10 @@ export function matchSides({
 }: {
 	teamAId: string;
 	teamAName: string;
+	teamAAvatarUrl?: string | null;
 	teamBId: string;
 	teamBName: string;
+	teamBAvatarUrl?: string | null;
 	scoreA: number | null;
 	scoreB: number | null;
 	winnerTeamId: string | null;
@@ -199,6 +211,7 @@ export function matchSides({
 	return {
 		teamA: {
 			name: teamAName,
+			avatarUrl: teamAAvatarUrl ?? null,
 			score: scoreA,
 			won: aWon,
 			lost: bWon,
@@ -206,6 +219,7 @@ export function matchSides({
 		},
 		teamB: {
 			name: teamBName,
+			avatarUrl: teamBAvatarUrl ?? null,
 			score: scoreB,
 			won: bWon,
 			lost: aWon,
@@ -218,8 +232,10 @@ export function matchSides({
 export function flightSides({
 	team1Id,
 	team1Name,
+	team1AvatarUrl,
 	team2Id,
 	team2Name,
+	team2AvatarUrl,
 	strokes1,
 	strokes2,
 	status,
@@ -227,8 +243,10 @@ export function flightSides({
 }: {
 	team1Id: string;
 	team1Name: string;
+	team1AvatarUrl?: string | null;
 	team2Id: string;
 	team2Name: string;
+	team2AvatarUrl?: string | null;
 	strokes1: number | null;
 	strokes2: number | null;
 	status: SubmissionStatus | null;
@@ -241,6 +259,7 @@ export function flightSides({
 	return {
 		teamA: {
 			name: team1Name,
+			avatarUrl: team1AvatarUrl ?? null,
 			score: strokes1,
 			won: oneWon,
 			lost: twoWon,
@@ -248,6 +267,7 @@ export function flightSides({
 		},
 		teamB: {
 			name: team2Name,
+			avatarUrl: team2AvatarUrl ?? null,
 			score: strokes2,
 			won: twoWon,
 			lost: oneWon,

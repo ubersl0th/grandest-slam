@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Avatar } from "@/components/avatar";
 import type {
 	ActivityLog,
 	Profile,
@@ -380,23 +381,38 @@ function EntryRow({
 	profilesById: Map<string, Profile>;
 }) {
 	const [open, setOpen] = useState(false);
-	const actorLabel = entry.actor_id
-		? (profilesById.get(entry.actor_id)?.nickname ??
-			profilesById.get(entry.actor_id)?.full_name ??
-			entry.actor_name ??
-			"Ukjent")
-		: "Systemet";
+	const actorProfile = entry.actor_id
+		? (profilesById.get(entry.actor_id) ?? null)
+		: null;
+	const actorLabel = actorProfile
+		? (actorProfile.nickname ?? actorProfile.full_name)
+		: (entry.actor_name ?? (entry.actor_id ? "Ukjent" : "Systemet"));
 	const actionLabel = ACTION_LABELS[entry.action] ?? entry.action;
 	const targetLabel = entry.target_type
 		? (TARGET_LABELS[entry.target_type] ?? entry.target_type)
 		: null;
-	const teamNames = entry.team_ids
-		.map((id) => teamsById.get(id)?.name)
-		.filter((n): n is string => !!n);
+	const teams = entry.team_ids
+		.map((id) => teamsById.get(id))
+		.filter((t): t is Team => !!t);
 
 	return (
 		<div className="card p-3">
 			<div className="flex items-start gap-3">
+				{actorProfile ? (
+					<Avatar
+						src={actorProfile.avatar_url}
+						name={actorProfile.full_name}
+						kind="player"
+						size={32}
+					/>
+				) : (
+					<span
+						aria-hidden
+						className="grid h-8 w-8 shrink-0 place-items-center rounded-full border-2 border-ink bg-plum text-base text-cream"
+					>
+						⚙︎
+					</span>
+				)}
 				<div className="min-w-0 flex-1">
 					<div className="flex flex-wrap items-center gap-2">
 						<span className="rounded-full border-2 border-ink bg-cream-50 px-2 py-0.5 text-[10px] font-black uppercase">
@@ -412,28 +428,42 @@ function EntryRow({
 					<p className="mt-1 text-sm font-extrabold leading-snug">
 						{entry.summary}
 					</p>
-					<p className="mt-1 text-[11px] text-ink/60">
+					<div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-ink/60">
 						<span className="font-bold">{actorLabel}</span>
-						{teamNames.length > 0 && (
+						{teams.length > 0 && (
 							<>
-								{" · "}
-								{teamNames.join(", ")}
+								<span aria-hidden>·</span>
+								{teams.map((t) => (
+									<span
+										key={t.id}
+										className="inline-flex items-center gap-1 rounded-full border border-ink/15 bg-cream-50 px-1.5 py-0.5 text-[10px] font-bold"
+									>
+										<Avatar
+											src={t.avatar_url}
+											name={t.name}
+											kind="team"
+											size={14}
+											ring={false}
+										/>
+										<span className="truncate">{t.name}</span>
+									</span>
+								))}
 							</>
 						)}
-						{" · "}
+						<span aria-hidden>·</span>
 						<time
 							dateTime={entry.created_at}
 							title={fullTime(entry.created_at)}
 						>
 							{relativeTime(entry.created_at)}
 						</time>
-					</p>
+					</div>
 				</div>
 				{entry.metadata && Object.keys(entry.metadata).length > 0 && (
 					<button
 						type="button"
 						onClick={() => setOpen((o) => !o)}
-						className="rounded-full border-2 border-ink bg-cream-50 px-2 py-0.5 text-[10px] font-bold"
+						className="shrink-0 rounded-full border-2 border-ink bg-cream-50 px-2 py-0.5 text-[10px] font-bold"
 					>
 						{open ? "Skjul" : "Detaljer"}
 					</button>

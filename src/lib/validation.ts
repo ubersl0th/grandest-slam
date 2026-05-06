@@ -10,6 +10,15 @@ const experienceMap = z.object({
 	golf: level,
 });
 
+const avatarUrl = z
+	.string()
+	.trim()
+	.url()
+	.max(512)
+	.optional()
+	.nullable()
+	.or(z.literal(""));
+
 export const playerSubmissionSchema = z.object({
 	first_name: z.string().trim().min(1, "Fornavn er påkrevd").max(40),
 	last_name: z.string().trim().min(1, "Etternavn er påkrevd").max(40),
@@ -19,6 +28,7 @@ export const playerSubmissionSchema = z.object({
 		.email("Gyldig e-postadresse kreves")
 		.transform((v) => v.toLowerCase().trim()),
 	bio: z.string().trim().max(500).optional().or(z.literal("")),
+	avatar_url: avatarUrl,
 	experience: experienceMap,
 });
 
@@ -31,6 +41,7 @@ const playerSection = z.object({
 		.email("Gyldig e-postadresse kreves")
 		.transform((v) => v.toLowerCase().trim()),
 	bio: z.string().trim().max(500).optional().or(z.literal("")),
+	avatar_url: avatarUrl,
 	experience: experienceMap,
 });
 
@@ -38,6 +49,7 @@ export const teamSubmissionSchema = z
 	.object({
 		team_name: z.string().trim().min(2, "Lagnavn er påkrevd").max(60),
 		team_bio: z.string().trim().max(500).optional().or(z.literal("")),
+		team_avatar_url: avatarUrl,
 		player_1: playerSection,
 		player_2: playerSection,
 	})

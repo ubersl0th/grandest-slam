@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { AvatarUploader } from "@/components/avatar-uploader";
 import type { ExperienceLevel, Sport } from "@/lib/database.types";
 import { EXPERIENCE_LEVELS, SPORTS } from "@/lib/sports";
 import { createClient } from "@/lib/supabase/client";
@@ -9,22 +10,31 @@ import { createClient } from "@/lib/supabase/client";
 type Initial = {
 	nickname: string;
 	bio: string;
+	avatarUrl: string | null;
 	experience: Partial<Record<Sport, ExperienceLevel>>;
 };
 
 type Props = {
 	profileId: string;
+	displayName: string;
 	initial: Initial;
 	hasTeam: boolean;
 };
 
 const DEFAULT_LEVEL: ExperienceLevel = "intermediate";
 
-export function ProfileForm({ profileId, initial, hasTeam }: Props) {
+export function ProfileForm({
+	profileId,
+	displayName,
+	initial,
+	hasTeam,
+}: Props) {
 	const router = useRouter();
 	const supabase = createClient();
 	const [nickname, setNickname] = useState(initial.nickname);
 	const [bio, setBio] = useState(initial.bio);
+	const [avatarUrl, setAvatarUrl] = useState<string | null>(initial.avatarUrl);
+	const [avatarMsg, setAvatarMsg] = useState<string | null>(null);
 	const [experience, setExperience] = useState<Record<Sport, ExperienceLevel>>(
 		() => {
 			const out = {} as Record<Sport, ExperienceLevel>;
@@ -96,7 +106,35 @@ export function ProfileForm({ profileId, initial, hasTeam }: Props) {
 				<h2 className="text-xs font-extrabold uppercase tracking-widest text-[var(--color-ink)]/60">
 					Om deg
 				</h2>
-				<label className="mt-3 block">
+				<div className="mt-3">
+					<AvatarUploader
+						pathPrefix={`profiles/${profileId}`}
+						value={avatarUrl}
+						name={displayName}
+						kind="player"
+						label="Profilbilde"
+						helpText="Vises ved siden av navnet ditt overalt i appen."
+						onChange={async (url) => {
+							setAvatarMsg(null);
+							const { error } = await supabase
+								.from("profiles")
+								.update({ avatar_url: url })
+								.eq("id", profileId);
+							if (error) {
+								setAvatarMsg(error.message);
+								return;
+							}
+							setAvatarUrl(url);
+							router.refresh();
+						}}
+					/>
+					{avatarMsg && (
+						<p className="mt-2 text-xs font-bold text-[var(--color-terracotta-dark)]">
+							{avatarMsg}
+						</p>
+					)}
+				</div>
+				<label className="mt-5 block">
 					<span className="label">Kallenavn</span>
 					<input
 						className="input"
