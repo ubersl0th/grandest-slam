@@ -11,8 +11,9 @@ type Props = {
 
 export function AppShell({ user, children, active }: Props) {
 	const showAdmin = isAdminRole(user?.profile?.role);
+	const showBottomNav = Boolean(user?.profile);
 	return (
-		<div className="min-h-dvh pb-24 md:pb-10">
+		<div className={`min-h-dvh md:pb-10 ${showBottomNav ? "pb-24" : "pb-10"}`}>
 			<header className="sticky top-0 z-40 border-b-2 border-[var(--color-ink)] bg-[var(--color-cream)]/95 backdrop-blur">
 				<div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
 					<Link href="/" className="flex items-center gap-2">
@@ -79,49 +80,46 @@ export function AppShell({ user, children, active }: Props) {
 
 			<main>{children}</main>
 
-			{/* Mobile bottom nav */}
-			<nav
-				className={`fixed bottom-0 left-0 right-0 z-40 grid border-t-2 border-[var(--color-ink)] bg-[var(--color-cream-50)] md:hidden ${
-					showAdmin && user?.profile ? "grid-cols-5" : "grid-cols-4"
-				}`}
-			>
-				<BottomNavLink
-					href="/leaderboard"
-					active={active === "leaderboard"}
-					icon="🏆"
-					label="Liste"
-				/>
-				<BottomNavLink
-					href="/matches"
-					active={active === "matches"}
-					icon="🎾"
-					label="Kamper"
-				/>
-				<BottomNavLink
-					href="/dashboard"
-					active={active === "dashboard"}
-					icon="👥"
-					label="Lag"
-				/>
-				{user?.profile ? (
+			{showBottomNav && (
+				<nav
+					className={`fixed bottom-0 left-0 right-0 z-40 grid border-t-2 border-[var(--color-ink)] bg-[var(--color-cream-50)] md:hidden ${
+						showAdmin ? "grid-cols-5" : "grid-cols-4"
+					}`}
+				>
+					<BottomNavLink
+						href="/leaderboard"
+						active={active === "leaderboard"}
+						icon="🏆"
+						label="Liste"
+					/>
+					<BottomNavLink
+						href="/matches"
+						active={active === "matches"}
+						icon="🎾"
+						label="Kamper"
+					/>
+					<BottomNavLink
+						href="/dashboard"
+						active={active === "dashboard"}
+						icon="👥"
+						label="Lag"
+					/>
 					<BottomNavLink
 						href="/profile"
 						active={active === "profile"}
 						icon="🙂"
 						label="Profil"
 					/>
-				) : (
-					<BottomNavLink href="/" active={false} icon="🏠" label="Hjem" />
-				)}
-				{showAdmin && user?.profile && (
-					<BottomNavLink
-						href="/admin"
-						active={active === "admin"}
-						icon="⚙️"
-						label="Admin"
-					/>
-				)}
-			</nav>
+					{showAdmin && (
+						<BottomNavLink
+							href="/admin"
+							active={active === "admin"}
+							icon="⚙️"
+							label="Admin"
+						/>
+					)}
+				</nav>
+			)}
 		</div>
 	);
 }

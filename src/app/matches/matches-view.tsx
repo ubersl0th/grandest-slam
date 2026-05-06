@@ -1,10 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
-import { MatchHeadline } from "@/components/match-headline";
+import { flightSides, MatchCard, matchSides } from "@/components/match-card";
 import type { Sport, SubmissionStatus } from "@/lib/database.types";
-import { sportEmoji, sportLabel } from "@/lib/sports";
 import { createClient } from "@/lib/supabase/client";
 
 type RawMatch = {
@@ -17,6 +15,8 @@ type RawMatch = {
 	winner_team_id: string | null;
 	status: SubmissionStatus | null;
 	submitted_at: string | null;
+	confirmed_at: string | null;
+	created_at: string | null;
 	ta: { name: string } | { name: string }[] | null;
 	tb: { name: string } | { name: string }[] | null;
 };
@@ -30,31 +30,11 @@ type RawFlight = {
 	strokes_2: number | null;
 	status: SubmissionStatus | null;
 	submitted_at: string | null;
+	confirmed_at: string | null;
+	created_at: string | null;
 	t1: { name: string } | { name: string }[] | null;
 	t2: { name: string } | { name: string }[] | null;
 };
-
-type SortKey = "status" | "registered_desc" | "registered_asc";
-
-const sortOptions: { key: SortKey; label: string }[] = [
-	{ key: "status", label: "Status" },
-	{ key: "registered_desc", label: "Nyest registrert" },
-	{ key: "registered_asc", label: "Eldst registrert" },
-];
-
-const dateFmt = new Intl.DateTimeFormat("nb-NO", {
-	day: "numeric",
-	month: "short",
-	hour: "2-digit",
-	minute: "2-digit",
-});
-
-function formatRegistered(iso: string | null): string | null {
-	if (!iso) return null;
-	const d = new Date(iso);
-	if (Number.isNaN(d.getTime())) return null;
-	return dateFmt.format(d);
-}
 
 const tabs: { key: "all" | "mine" | Sport; label: string }[] = [
 	{ key: "all", label: "Alle" },
@@ -84,7 +64,6 @@ export function MatchesView({
 	const [tab, setTab] = useState<(typeof tabs)[number]["key"]>(
 		myTeamId ? "mine" : "all",
 	);
-	const [sortKey, setSortKey] = useState<SortKey>("status");
 
 	useEffect(() => {
 		const supabase = createClient();
@@ -134,25 +113,14 @@ export function MatchesView({
 		return f.sport === tab;
 	});
 
-	// Sort by status priority: pending (needs me to confirm) → not started → confirmed
-	const matchPriority = (m: RawMatch | RawFlight) => {
-		if (m.status === "pending") return 0;
-		if (m.status === null) return 1;
-		if (m.status === "disputed") return 2;
-		return 3;
+	// Newest activity first: pick the most recent of confirmed_at, submitted_at, created_at.
+	const lastActivity = (m: RawMatch | RawFlight) => {
+		const t = (iso: string | null) =>
+			iso ? new Date(iso).getTime() : Number.NEGATIVE_INFINITY;
+		return Math.max(t(m.confirmed_at), t(m.submitted_at), t(m.created_at));
 	};
-	const registeredTime = (m: RawMatch | RawFlight) =>
-		m.submitted_at ? new Date(m.submitted_at).getTime() : null;
-	const compare = (a: RawMatch | RawFlight, b: RawMatch | RawFlight) => {
-		if (sortKey === "status") return matchPriority(a) - matchPriority(b);
-		const ta = registeredTime(a);
-		const tb = registeredTime(b);
-		// Unregistered matches sort to the bottom regardless of direction.
-		if (ta === null && tb === null) return 0;
-		if (ta === null) return 1;
-		if (tb === null) return -1;
-		return sortKey === "registered_desc" ? tb - ta : ta - tb;
-	};
+	const compare = (a: RawMatch | RawFlight, b: RawMatch | RawFlight) =>
+		lastActivity(b) - lastActivity(a);
 	filteredMatches.sort(compare);
 	filteredFlights.sort(compare);
 
@@ -176,113 +144,54 @@ export function MatchesView({
 				))}
 			</div>
 
-			<div className="mt-2 flex items-center gap-2 text-xs">
-				<span className="font-bold uppercase tracking-wider text-ink/60">
-					Sortér
-				</span>
-				<div className="flex flex-wrap gap-1">
-					{sortOptions.map((opt) => (
-						<button
-							type="button"
-							key={opt.key}
-							onClick={() => setSortKey(opt.key)}
-							className={`rounded-full border-2 border-ink px-3 py-1 font-bold transition ${
-								sortKey === opt.key
-									? "bg-ink text-cream"
-									: "bg-cream-50 hover:bg-cream-200"
-							}`}
-						>
-							{opt.label}
-						</button>
-					))}
-				</div>
-			</div>
-
-			<ul className="mt-4 space-y-2">
+			<ul className="mt-4 space-y-3">
 				{filteredMatches.map((m) => {
-					const registered = formatRegistered(m.submitted_at);
-					const winnerSide: "a" | "b" | null =
-						m.status === "confirmed" && m.winner_team_id
-							? m.winner_team_id === m.team_a
-								? "a"
-								: m.winner_team_id === m.team_b
-									? "b"
-									: null
-							: null;
+					const sides = matchSides({
+						teamAId: m.team_a,
+						teamAName: getName(m.ta),
+						teamBId: m.team_b,
+						teamBName: getName(m.tb),
+						scoreA: m.score_a,
+						scoreB: m.score_b,
+						winnerTeamId: m.winner_team_id,
+						status: m.status,
+						myTeamId,
+					});
 					return (
 						<li key={m.id}>
-							<Link
+							<MatchCard
 								href={`/matches/${m.id}`}
-								className="card flex items-center gap-3 p-3 hover:-translate-y-px transition-transform"
-							>
-								<Pill status={m.status} sport={m.sport} />
-								<div className="min-w-0 flex-1">
-									<MatchHeadline
-										teamAName={getName(m.ta)}
-										teamBName={getName(m.tb)}
-										winnerSide={winnerSide}
-									/>
-									{m.status === "confirmed" && (
-										<p className="text-xs text-ink/60">
-											Sluttresultat: {m.score_a}–{m.score_b}
-										</p>
-									)}
-									{m.status === "pending" && (
-										<p className="text-xs text-ink/60">
-											Innsendt: {m.score_a}–{m.score_b}
-										</p>
-									)}
-									<p className="text-[11px] text-ink/55">
-										{registered
-											? `Registrert ${registered}`
-											: "Ikke registrert enda"}
-									</p>
-								</div>
-								<span className="rounded-full border-2 border-ink bg-cream-50 px-2 py-1 text-[10px] font-black uppercase">
-									Åpne
-								</span>
-							</Link>
+								sport={m.sport}
+								status={m.status}
+								submittedAt={m.submitted_at}
+								teamA={sides.teamA}
+								teamB={sides.teamB}
+							/>
 						</li>
 					);
 				})}
 				{filteredFlights.map((f) => {
-					const registered = formatRegistered(f.submitted_at);
+					const sides = flightSides({
+						team1Id: f.team_1,
+						team1Name: getName(f.t1),
+						team2Id: f.team_2,
+						team2Name: getName(f.t2),
+						strokes1: f.strokes_1,
+						strokes2: f.strokes_2,
+						status: f.status,
+						myTeamId,
+					});
 					return (
 						<li key={f.id}>
-							<Link
+							<MatchCard
 								href={`/matches/flight/${f.id}`}
-								className="card flex items-center gap-3 p-3 hover:-translate-y-px transition-transform"
-							>
-								<Pill
-									status={f.status}
-									sport={f.sport}
-									round={f.round_number}
-								/>
-								<div className="min-w-0 flex-1">
-									<p className="truncate font-extrabold">
-										{getName(f.t1)} <span className="opacity-50">vs</span>{" "}
-										{getName(f.t2)}
-									</p>
-									{f.status === "confirmed" && (
-										<p className="text-xs text-ink/60">
-											Slag: {f.strokes_1}–{f.strokes_2}
-										</p>
-									)}
-									{f.status === "pending" && (
-										<p className="text-xs text-ink/60">
-											Innsendt: {f.strokes_1}–{f.strokes_2}
-										</p>
-									)}
-									<p className="text-[11px] text-ink/55">
-										{registered
-											? `Registrert ${registered}`
-											: "Ikke registrert enda"}
-									</p>
-								</div>
-								<span className="rounded-full border-2 border-ink bg-cream-50 px-2 py-1 text-[10px] font-black uppercase">
-									Åpne
-								</span>
-							</Link>
+								sport={f.sport}
+								round={f.round_number}
+								status={f.status}
+								submittedAt={f.submitted_at}
+								teamA={sides.teamA}
+								teamB={sides.teamB}
+							/>
 						</li>
 					);
 				})}
@@ -292,37 +201,6 @@ export function MatchesView({
 					</li>
 				)}
 			</ul>
-		</div>
-	);
-}
-
-function Pill({
-	status,
-	sport,
-	round,
-}: {
-	status: SubmissionStatus | null;
-	sport: Sport;
-	round?: number;
-}) {
-	const styles =
-		status === "pending"
-			? "bg-mustard"
-			: status === "disputed"
-				? "bg-terracotta text-cream"
-				: status === "confirmed"
-					? "bg-teal text-cream"
-					: "bg-cream-50";
-	return (
-		<div
-			className={`flex flex-col items-center justify-center rounded-xl border-2 border-ink px-2 py-1 text-[10px] font-black uppercase ${styles}`}
-			style={{ minWidth: 56 }}
-		>
-			<span className="text-base leading-none">{sportEmoji(sport)}</span>
-			<span className="mt-0.5 leading-none">
-				{sportLabel(sport).slice(0, 4)}
-				{round ? ` R${round}` : ""}
-			</span>
 		</div>
 	);
 }

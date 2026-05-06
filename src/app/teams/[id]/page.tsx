@@ -1,27 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
-import { MatchHeadline } from "@/components/match-headline";
+import { flightSides, MatchCard, matchSides } from "@/components/match-card";
+import { TeamPointsBreakdown } from "@/components/team-points-breakdown";
 import { getSessionUser } from "@/lib/auth";
 import type { Profile } from "@/lib/database.types";
-import { experienceLabel, SPORTS, sportEmoji, sportLabel } from "@/lib/sports";
+import { experienceLabel, SPORTS } from "@/lib/sports";
 import { createClient } from "@/lib/supabase/server";
 
 export const revalidate = 0;
-
-const dateFmt = new Intl.DateTimeFormat("nb-NO", {
-	day: "numeric",
-	month: "short",
-	hour: "2-digit",
-	minute: "2-digit",
-});
-
-function formatRegistered(iso: string | null): string | null {
-	if (!iso) return null;
-	const d = new Date(iso);
-	if (Number.isNaN(d.getTime())) return null;
-	return dateFmt.format(d);
-}
 
 export default async function TeamPage({
 	params,
@@ -112,34 +99,7 @@ export default async function TeamPage({
 						</div>
 					</div>
 
-					<div className="mt-6 grid grid-cols-4 gap-2">
-						{SPORTS.map((s) => {
-							const key =
-								s.key === "padel"
-									? totals?.padel_points
-									: s.key === "tennis"
-										? totals?.tennis_points
-										: s.key === "disc_golf"
-											? totals?.disc_golf_points
-											: totals?.golf_points;
-							return (
-								<div
-									key={s.key}
-									className="rounded-xl border-2 border-[var(--color-ink)] bg-[var(--color-cream-50)] p-2 text-center"
-								>
-									<div className="text-xs font-bold opacity-70">
-										{s.emoji} {s.label}
-									</div>
-									<div
-										className="mt-1 text-2xl"
-										style={{ fontFamily: "var(--font-display)" }}
-									>
-										{key ?? 0}
-									</div>
-								</div>
-							);
-						})}
-					</div>
+					<TeamPointsBreakdown totals={totals} className="mt-6" />
 				</div>
 
 				<h2
@@ -192,11 +152,8 @@ export default async function TeamPage({
 				>
 					Siste resultater
 				</h2>
-				<div className="mt-3 space-y-2">
-					{[
-						...(matches ?? []).map((m) => ({ kind: "match" as const, m })),
-						...(flights ?? []).map((f) => ({ kind: "flight" as const, f })),
-					].length === 0 && (
+				<div className="mt-3 space-y-3">
+					{(matches ?? []).length === 0 && (flights ?? []).length === 0 && (
 						<div className="card p-4 text-sm text-[var(--color-ink)]/60">
 							Ingen resultater enda.
 						</div>
@@ -206,55 +163,27 @@ export default async function TeamPage({
 							(m as unknown as { ta: { name: string } | null }).ta?.name ?? "?";
 						const tb =
 							(m as unknown as { tb: { name: string } | null }).tb?.name ?? "?";
-						const won = m.winner_team_id === id;
-						const registered = formatRegistered(m.submitted_at);
-						const winnerSide: "a" | "b" | null =
-							m.status === "confirmed" && m.winner_team_id
-								? m.winner_team_id === m.team_a
-									? "a"
-									: m.winner_team_id === m.team_b
-										? "b"
-										: null
-								: null;
+						const sides = matchSides({
+							teamAId: m.team_a,
+							teamAName: ta,
+							teamBId: m.team_b,
+							teamBName: tb,
+							scoreA: m.score_a,
+							scoreB: m.score_b,
+							winnerTeamId: m.winner_team_id,
+							status: m.status,
+							myTeamId: id,
+						});
 						return (
-							<div
+							<MatchCard
 								key={m.id}
-								className="card flex items-center justify-between gap-3 p-3"
-							>
-								<div className="min-w-0">
-									<div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[var(--color-ink)]/60">
-										{sportEmoji(m.sport)} {sportLabel(m.sport)}
-									</div>
-									<MatchHeadline
-										teamAName={ta}
-										teamBName={tb}
-										winnerSide={winnerSide}
-										className="mt-1"
-									/>
-									<div className="text-[11px] text-[var(--color-ink)]/55">
-										{registered
-											? `Registrert ${registered}`
-											: "Ikke registrert enda"}
-									</div>
-								</div>
-								{m.status === "confirmed" ? (
-									<div className="text-right">
-										<span
-											className={`inline-block rounded-full border-2 border-[var(--color-ink)] px-3 py-1 text-xs font-black ${
-												won
-													? "bg-[var(--color-mustard)]"
-													: "bg-[var(--color-cream-50)]"
-											}`}
-										>
-											{m.score_a}–{m.score_b}
-										</span>
-									</div>
-								) : (
-									<span className="text-xs font-bold opacity-60">
-										{m.status ?? "planlagt"}
-									</span>
-								)}
-							</div>
+								href={`/matches/${m.id}`}
+								sport={m.sport}
+								status={m.status}
+								submittedAt={m.submitted_at}
+								teamA={sides.teamA}
+								teamB={sides.teamB}
+							/>
 						);
 					})}
 					{(flights ?? []).map((f) => {
@@ -262,36 +191,27 @@ export default async function TeamPage({
 							(f as unknown as { t1: { name: string } | null }).t1?.name ?? "?";
 						const t2 =
 							(f as unknown as { t2: { name: string } | null }).t2?.name ?? "?";
-						const registered = formatRegistered(f.submitted_at);
+						const sides = flightSides({
+							team1Id: f.team_1,
+							team1Name: t1,
+							team2Id: f.team_2,
+							team2Name: t2,
+							strokes1: f.strokes_1,
+							strokes2: f.strokes_2,
+							status: f.status,
+							myTeamId: id,
+						});
 						return (
-							<div
+							<MatchCard
 								key={f.id}
-								className="card flex items-center justify-between gap-3 p-3"
-							>
-								<div className="min-w-0">
-									<div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[var(--color-ink)]/60">
-										{sportEmoji(f.sport)} {sportLabel(f.sport)} · R
-										{f.round_number}
-									</div>
-									<div className="mt-1 truncate font-extrabold">
-										{t1} <span className="opacity-50">vs</span> {t2}
-									</div>
-									<div className="text-[11px] text-[var(--color-ink)]/55">
-										{registered
-											? `Registrert ${registered}`
-											: "Ikke registrert enda"}
-									</div>
-								</div>
-								{f.status === "confirmed" ? (
-									<span className="rounded-full border-2 border-[var(--color-ink)] bg-[var(--color-cream-50)] px-3 py-1 text-xs font-black">
-										{f.strokes_1}–{f.strokes_2}
-									</span>
-								) : (
-									<span className="text-xs font-bold opacity-60">
-										{f.status ?? "planlagt"}
-									</span>
-								)}
-							</div>
+								href={`/matches/flight/${f.id}`}
+								sport={f.sport}
+								round={f.round_number}
+								status={f.status}
+								submittedAt={f.submitted_at}
+								teamA={sides.teamA}
+								teamB={sides.teamB}
+							/>
 						);
 					})}
 				</div>

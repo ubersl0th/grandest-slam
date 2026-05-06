@@ -17,7 +17,7 @@ export function MatchHeadline({
 	const sideClass = (won: boolean, otherWon: boolean) =>
 		won ? "font-black" : otherWon ? "font-medium opacity-50" : "font-extrabold";
 	return (
-		<p className={`truncate ${className ?? ""}`}>
+		<p className={`break-words ${className ?? ""}`}>
 			<span className={sideClass(aWon, bWon)}>
 				{aWon && (
 					<span aria-hidden className="mr-1">
