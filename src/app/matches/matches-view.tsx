@@ -17,8 +17,8 @@ type RawMatch = {
 	submitted_at: string | null;
 	confirmed_at: string | null;
 	created_at: string | null;
-	ta: { name: string } | { name: string }[] | null;
-	tb: { name: string } | { name: string }[] | null;
+	ta: TeamRel;
+	tb: TeamRel;
 };
 type RawFlight = {
 	id: string;
@@ -32,9 +32,14 @@ type RawFlight = {
 	submitted_at: string | null;
 	confirmed_at: string | null;
 	created_at: string | null;
-	t1: { name: string } | { name: string }[] | null;
-	t2: { name: string } | { name: string }[] | null;
+	t1: TeamRel;
+	t2: TeamRel;
 };
+
+type TeamRel =
+	| { name: string; avatar_url: string | null }
+	| { name: string; avatar_url: string | null }[]
+	| null;
 
 const tabs: { key: "all" | "mine" | Sport; label: string }[] = [
 	{ key: "all", label: "Alle" },
@@ -45,9 +50,15 @@ const tabs: { key: "all" | "mine" | Sport; label: string }[] = [
 	{ key: "golf", label: "Golf" },
 ];
 
-function getName(rel: { name: string } | { name: string }[] | null) {
+function getName(rel: TeamRel) {
 	if (!rel) return "?";
 	return Array.isArray(rel) ? (rel[0]?.name ?? "?") : rel.name;
+}
+function getAvatar(rel: TeamRel): string | null {
+	if (!rel) return null;
+	return Array.isArray(rel)
+		? (rel[0]?.avatar_url ?? null)
+		: (rel.avatar_url ?? null);
 }
 
 export function MatchesView({
@@ -71,11 +82,11 @@ export function MatchesView({
 			const [m, f] = await Promise.all([
 				supabase
 					.from("matches")
-					.select("*, ta:team_a(name), tb:team_b(name)")
+					.select("*, ta:team_a(name, avatar_url), tb:team_b(name, avatar_url)")
 					.order("created_at", { ascending: false }),
 				supabase
 					.from("flights")
-					.select("*, t1:team_1(name), t2:team_2(name)")
+					.select("*, t1:team_1(name, avatar_url), t2:team_2(name, avatar_url)")
 					.order("round_number")
 					.order("created_at", { ascending: false }),
 			]);
@@ -149,8 +160,10 @@ export function MatchesView({
 					const sides = matchSides({
 						teamAId: m.team_a,
 						teamAName: getName(m.ta),
+						teamAAvatarUrl: getAvatar(m.ta),
 						teamBId: m.team_b,
 						teamBName: getName(m.tb),
+						teamBAvatarUrl: getAvatar(m.tb),
 						scoreA: m.score_a,
 						scoreB: m.score_b,
 						winnerTeamId: m.winner_team_id,
@@ -174,8 +187,10 @@ export function MatchesView({
 					const sides = flightSides({
 						team1Id: f.team_1,
 						team1Name: getName(f.t1),
+						team1AvatarUrl: getAvatar(f.t1),
 						team2Id: f.team_2,
 						team2Name: getName(f.t2),
+						team2AvatarUrl: getAvatar(f.t2),
 						strokes1: f.strokes_1,
 						strokes2: f.strokes_2,
 						status: f.status,

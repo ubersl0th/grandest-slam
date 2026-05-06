@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
+import { Avatar } from "@/components/avatar";
 import { getSessionUser } from "@/lib/auth";
 import { sportEmoji, sportLabel } from "@/lib/sports";
 import { createClient } from "@/lib/supabase/server";
@@ -22,7 +23,7 @@ export default async function FlightDetailPage({
 	const { data: flight } = await supabase
 		.from("flights")
 		.select(
-			"*, t1:team_1(id,name), t2:team_2(id,name), submitter:submitted_by(full_name)",
+			"*, t1:team_1(id,name,avatar_url), t2:team_2(id,name,avatar_url), submitter:submitted_by(full_name)",
 		)
 		.eq("id", id)
 		.maybeSingle();
@@ -49,15 +50,33 @@ export default async function FlightDetailPage({
 						{sportEmoji(f.sport)} {sportLabel(f.sport)} · Runde {f.round_number}
 					</p>
 					<h1
-						className="mt-3 text-3xl md:text-4xl"
+						className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-2xl sm:text-3xl md:text-4xl"
 						style={{ fontFamily: "var(--font-display)" }}
 					>
-						<Link href={`/teams/${f.team_1}`} className="hover:underline">
-							{teamName(f.t1)}
+						<Link
+							href={`/teams/${f.team_1}`}
+							className="flex min-w-0 items-center gap-2 hover:underline"
+						>
+							<Avatar
+								src={teamAvatar(f.t1)}
+								name={teamName(f.t1)}
+								kind="team"
+								size={40}
+							/>
+							<span className="truncate">{teamName(f.t1)}</span>
 						</Link>
-						<span className="mx-2 opacity-50">vs</span>
-						<Link href={`/teams/${f.team_2}`} className="hover:underline">
-							{teamName(f.t2)}
+						<span className="opacity-50">vs</span>
+						<Link
+							href={`/teams/${f.team_2}`}
+							className="flex min-w-0 items-center gap-2 hover:underline"
+						>
+							<Avatar
+								src={teamAvatar(f.t2)}
+								name={teamName(f.t2)}
+								kind="team"
+								size={40}
+							/>
+							<span className="truncate">{teamName(f.t2)}</span>
 						</Link>
 					</h1>
 					<p className="mt-2 text-sm text-[var(--color-ink)]/65">
@@ -93,6 +112,11 @@ export default async function FlightDetailPage({
 	);
 }
 
+type TeamRel =
+	| { id: string; name: string; avatar_url: string | null }
+	| { id: string; name: string; avatar_url: string | null }[]
+	| null;
+
 type FlightRow = {
 	id: string;
 	sport: "disc_golf" | "golf";
@@ -104,16 +128,20 @@ type FlightRow = {
 	status: "pending" | "confirmed" | "disputed" | null;
 	submitted_by: string | null;
 	submitted_by_team: string | null;
-	t1: { id: string; name: string } | { id: string; name: string }[] | null;
-	t2: { id: string; name: string } | { id: string; name: string }[] | null;
+	t1: TeamRel;
+	t2: TeamRel;
 	submitter: { full_name: string } | { full_name: string }[] | null;
 };
 
-function teamName(
-	rel: { id: string; name: string } | { id: string; name: string }[] | null,
-) {
+function teamName(rel: TeamRel) {
 	if (!rel) return "?";
 	return Array.isArray(rel) ? (rel[0]?.name ?? "?") : rel.name;
+}
+function teamAvatar(rel: TeamRel): string | null {
+	if (!rel) return null;
+	return Array.isArray(rel)
+		? (rel[0]?.avatar_url ?? null)
+		: (rel.avatar_url ?? null);
 }
 function extractFullName(
 	rel: { full_name: string } | { full_name: string }[] | null,

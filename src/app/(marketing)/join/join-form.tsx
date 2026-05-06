@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AvatarUploader } from "@/components/avatar-uploader";
 import type { ExperienceLevel, Sport } from "@/lib/database.types";
 import { EXPERIENCE_LEVELS, SPORTS } from "@/lib/sports";
 
@@ -10,6 +11,7 @@ type FormState = {
 	nickname: string;
 	email: string;
 	bio: string;
+	avatar_url: string | null;
 	experience: Record<Sport, ExperienceLevel>;
 };
 
@@ -19,6 +21,7 @@ const emptyForm = (): FormState => ({
 	nickname: "",
 	email: "",
 	bio: "",
+	avatar_url: null,
 	experience: {
 		padel: "intermediate",
 		tennis: "intermediate",
@@ -90,7 +93,20 @@ export function JoinForm() {
 				<h2 className="text-xs font-extrabold uppercase tracking-widest text-[var(--color-ink)]/60">
 					Om deg
 				</h2>
-				<div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+				<div className="mt-3">
+					<AvatarUploader
+						pathPrefix="submissions"
+						value={form.avatar_url}
+						name={
+							`${form.first_name} ${form.last_name}`.trim() || form.nickname
+						}
+						kind="player"
+						label="Profilbilde (valgfritt)"
+						helpText="Beskjær til 1:1. Lagres som webp."
+						onChange={(url) => update({ avatar_url: url })}
+					/>
+				</div>
+				<div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
 					<label className="block">
 						<span className="label">Fornavn</span>
 						<input

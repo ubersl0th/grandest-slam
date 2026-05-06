@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AvatarUploader } from "@/components/avatar-uploader";
 import type { ExperienceLevel, Sport } from "@/lib/database.types";
 import { EXPERIENCE_LEVELS, SPORTS } from "@/lib/sports";
 
@@ -12,12 +13,14 @@ type PlayerForm = {
 	nickname: string;
 	email: string;
 	bio: string;
+	avatar_url: string | null;
 	experience: ExperienceMap;
 };
 
 type FormState = {
 	team_name: string;
 	team_bio: string;
+	team_avatar_url: string | null;
 	player_1: PlayerForm;
 	player_2: PlayerForm;
 };
@@ -35,12 +38,14 @@ const emptyPlayer = (): PlayerForm => ({
 	nickname: "",
 	email: "",
 	bio: "",
+	avatar_url: null,
 	experience: emptyExperience(),
 });
 
 const emptyForm = (): FormState => ({
 	team_name: "",
 	team_bio: "",
+	team_avatar_url: null,
 	player_1: emptyPlayer(),
 	player_2: emptyPlayer(),
 });
@@ -121,7 +126,18 @@ export function TeamJoinForm() {
 				<h2 className="text-xs font-extrabold uppercase tracking-widest text-[var(--color-ink)]/60">
 					Om laget
 				</h2>
-				<div className="mt-3 grid grid-cols-1 gap-3">
+				<div className="mt-3">
+					<AvatarUploader
+						pathPrefix="submissions"
+						value={form.team_avatar_url}
+						name={form.team_name}
+						kind="team"
+						label="Lagbilde (valgfritt)"
+						helpText="En logo, et meme — eller et bilde av deg og makkeren."
+						onChange={(url) => setForm({ ...form, team_avatar_url: url })}
+					/>
+				</div>
+				<div className="mt-5 grid grid-cols-1 gap-3">
 					<label className="block">
 						<span className="label">Lagnavn</span>
 						<input
@@ -224,7 +240,19 @@ function PlayerCard({
 			<h2 className="text-xs font-extrabold uppercase tracking-widest text-[var(--color-ink)]/60">
 				Spiller {index}
 			</h2>
-			<div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+			<div className="mt-3">
+				<AvatarUploader
+					pathPrefix="submissions"
+					value={player.avatar_url}
+					name={
+						`${player.first_name} ${player.last_name}`.trim() || player.nickname
+					}
+					kind="player"
+					label="Profilbilde (valgfritt)"
+					onChange={(url) => onChange({ avatar_url: url })}
+				/>
+			</div>
+			<div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
 				<label className="block">
 					<span className="label">Fornavn</span>
 					<input

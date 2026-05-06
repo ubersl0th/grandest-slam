@@ -14,17 +14,20 @@ export type TeamSubmission = {
 	status: TeamReviewStatus;
 	team_name: string;
 	team_bio: string | null;
+	team_avatar_url: string | null;
 	player_1_first_name: string;
 	player_1_last_name: string;
 	player_1_nickname: string | null;
 	player_1_email: string;
 	player_1_bio: string | null;
+	player_1_avatar_url: string | null;
 	player_1_experience: Record<Sport, ExperienceLevel>;
 	player_2_first_name: string;
 	player_2_last_name: string;
 	player_2_nickname: string | null;
 	player_2_email: string;
 	player_2_bio: string | null;
+	player_2_avatar_url: string | null;
 	player_2_experience: Record<Sport, ExperienceLevel>;
 	rejection_reason: string | null;
 	reviewed_by: string | null;
@@ -41,6 +44,7 @@ export type PlayerSubmission = {
 	nickname: string | null;
 	email: string;
 	bio: string | null;
+	avatar_url: string | null;
 	experience: Record<Sport, ExperienceLevel>;
 	rejection_reason: string | null;
 	reviewed_by: string | null;
@@ -57,6 +61,7 @@ export type Profile = {
 	full_name: string;
 	nickname: string | null;
 	bio: string | null;
+	avatar_url: string | null;
 	role: UserRole;
 	created_at: string;
 };
@@ -65,9 +70,13 @@ export type Team = {
 	id: string;
 	name: string;
 	bio: string | null;
+	avatar_url: string | null;
 	pending_name: string | null;
 	pending_name_requested_by: string | null;
 	pending_name_requested_at: string | null;
+	pending_avatar_url: string | null;
+	pending_avatar_requested_by: string | null;
+	pending_avatar_requested_at: string | null;
 	created_at: string;
 };
 
@@ -147,6 +156,7 @@ export type ActivityLog = {
 export type TeamTotals = {
 	team_id: string;
 	team_name: string;
+	team_avatar_url: string | null;
 	padel_points: number;
 	tennis_points: number;
 	disc_golf_points: number;
@@ -276,6 +286,18 @@ export type Database = {
 				Returns: Team;
 			};
 			cancel_team_name_change: {
+				Args: { p_team_id: string };
+				Returns: Team;
+			};
+			request_team_avatar_change: {
+				Args: { p_team_id: string; p_avatar_url: string };
+				Returns: Team;
+			};
+			approve_team_avatar_change: {
+				Args: { p_team_id: string };
+				Returns: Team;
+			};
+			cancel_team_avatar_change: {
 				Args: { p_team_id: string };
 				Returns: Team;
 			};

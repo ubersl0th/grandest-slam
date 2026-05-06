@@ -16,6 +16,7 @@ type SubmissionRow = {
 	nickname: string | null;
 	email: string;
 	bio: string | null;
+	avatar_url: string | null;
 	experience: unknown;
 };
 
@@ -133,6 +134,7 @@ export async function POST(
 			last_name: sub.last_name,
 			nickname: sub.nickname,
 			bio: sub.bio,
+			avatar_url: sub.avatar_url,
 		})
 		.eq("id", userId);
 	if (profileErr) {

@@ -46,9 +46,11 @@ export default async function ProfilePage() {
 
 				<ProfileForm
 					profileId={user.id}
+					displayName={user.profile.full_name}
 					initial={{
 						nickname: user.profile.nickname ?? "",
 						bio: user.profile.bio ?? "",
+						avatarUrl: user.profile.avatar_url ?? null,
 						experience: initialExperience,
 					}}
 					hasTeam={Boolean(user.team)}

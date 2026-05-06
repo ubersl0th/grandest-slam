@@ -294,20 +294,22 @@ function Side({
 				style={{ fontFamily: "var(--font-display)" }}
 			/>
 			{!disabled && (
-				<div className="mt-2 flex justify-center gap-1">
+				<div className="mt-3 flex justify-center gap-4">
 					<button
 						type="button"
+						aria-label="Trekk fra ett slag"
 						onClick={() =>
 							onChange(typeof value === "number" ? Math.max(0, value - 1) : 0)
 						}
-						className="grid h-8 w-8 place-items-center rounded-full border-2 border-ink bg-cream-50 text-lg font-black"
+						className="grid h-12 w-12 place-items-center rounded-full border-2 border-ink bg-cream-50 text-2xl font-black active:translate-y-px"
 					>
 						−
 					</button>
 					<button
 						type="button"
+						aria-label="Legg til ett slag"
 						onClick={() => onChange(typeof value === "number" ? value + 1 : 1)}
-						className="grid h-8 w-8 place-items-center rounded-full border-2 border-ink bg-cream-50 text-lg font-black"
+						className="grid h-12 w-12 place-items-center rounded-full border-2 border-ink bg-cream-50 text-2xl font-black active:translate-y-px"
 					>
 						+
 					</button>

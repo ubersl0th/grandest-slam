@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { TeamAvatarControls } from "@/app/teams/[id]/team-avatar-controls";
 import { TeamNameControls } from "@/app/teams/[id]/team-name-controls";
 import { AppShell } from "@/components/app-shell";
+import { Avatar } from "@/components/avatar";
 import { flightSides, MatchCard, matchSides } from "@/components/match-card";
 import { TeamPointsBreakdown } from "@/components/team-points-breakdown";
 import { getSessionUser } from "@/lib/auth";
@@ -48,27 +50,27 @@ export default async function DashboardPage() {
 	// Pending matches (where this team is participating).
 	const { data: pendingMatches } = await supabase
 		.from("matches")
-		.select("*, ta:team_a(name), tb:team_b(name)")
+		.select("*, ta:team_a(name, avatar_url), tb:team_b(name, avatar_url)")
 		.eq("status", "pending")
 		.or(`team_a.eq.${team.id},team_b.eq.${team.id}`);
 
 	const { data: pendingFlights } = await supabase
 		.from("flights")
-		.select("*, t1:team_1(name), t2:team_2(name)")
+		.select("*, t1:team_1(name, avatar_url), t2:team_2(name, avatar_url)")
 		.eq("status", "pending")
 		.or(`team_1.eq.${team.id},team_2.eq.${team.id}`);
 
 	// Upcoming (no submission yet)
 	const { data: upcomingMatches } = await supabase
 		.from("matches")
-		.select("*, ta:team_a(name), tb:team_b(name)")
+		.select("*, ta:team_a(name, avatar_url), tb:team_b(name, avatar_url)")
 		.is("status", null)
 		.or(`team_a.eq.${team.id},team_b.eq.${team.id}`)
 		.limit(20);
 
 	const { data: upcomingFlights } = await supabase
 		.from("flights")
-		.select("*, t1:team_1(name), t2:team_2(name)")
+		.select("*, t1:team_1(name, avatar_url), t2:team_2(name, avatar_url)")
 		.is("status", null)
 		.or(`team_1.eq.${team.id},team_2.eq.${team.id}`)
 		.order("round_number")
@@ -88,7 +90,7 @@ export default async function DashboardPage() {
 
 	const { data: recentMatches } = await supabase
 		.from("matches")
-		.select("*, ta:team_a(name), tb:team_b(name)")
+		.select("*, ta:team_a(name, avatar_url), tb:team_b(name, avatar_url)")
 		.eq("status", "confirmed")
 		.or(`team_a.eq.${team.id},team_b.eq.${team.id}`)
 		.order("submitted_at", { ascending: false, nullsFirst: false })
@@ -96,7 +98,7 @@ export default async function DashboardPage() {
 
 	const { data: recentFlights } = await supabase
 		.from("flights")
-		.select("*, t1:team_1(name), t2:team_2(name)")
+		.select("*, t1:team_1(name, avatar_url), t2:team_2(name, avatar_url)")
 		.eq("status", "confirmed")
 		.or(`team_1.eq.${team.id},team_2.eq.${team.id}`)
 		.order("submitted_at", { ascending: false, nullsFirst: false })
@@ -116,6 +118,9 @@ export default async function DashboardPage() {
 	const teammate = memberProfiles.find((p) => p.id !== user.id) ?? null;
 	const requester =
 		memberProfiles.find((p) => p.id === team.pending_name_requested_by) ?? null;
+	const avatarRequester =
+		memberProfiles.find((p) => p.id === team.pending_avatar_requested_by) ??
+		null;
 
 	return (
 		<AppShell user={user} active="dashboard">
@@ -123,16 +128,33 @@ export default async function DashboardPage() {
 				<p className="text-xs font-bold uppercase tracking-widest text-[var(--color-ink)]/60">
 					Velkommen
 				</p>
-				<h1
-					className="mt-1 text-3xl md:text-5xl"
-					style={{ fontFamily: "var(--font-display)" }}
-				>
-					{user.profile?.full_name?.split(" ")[0] ?? "Spiller"}
-				</h1>
-				<p className="mt-2 text-[var(--color-ink)]/75">
-					Lag:{" "}
-					<Link href={`/teams/${team.id}`} className="font-bold underline">
-						{team.name}
+				<div className="mt-1 flex items-center gap-3">
+					<Avatar
+						src={user.profile?.avatar_url ?? null}
+						name={user.profile?.full_name ?? "Spiller"}
+						kind="player"
+						size={56}
+					/>
+					<h1
+						className="min-w-0 truncate text-3xl md:text-5xl"
+						style={{ fontFamily: "var(--font-display)" }}
+					>
+						{user.profile?.full_name?.split(" ")[0] ?? "Spiller"}
+					</h1>
+				</div>
+				<p className="mt-3 inline-flex items-center gap-2 text-[var(--color-ink)]/75">
+					<span>Lag:</span>
+					<Link
+						href={`/teams/${team.id}`}
+						className="inline-flex items-center gap-2 font-bold underline"
+					>
+						<Avatar
+							src={team.avatar_url}
+							name={team.name}
+							kind="team"
+							size={24}
+						/>
+						<span>{team.name}</span>
 					</Link>
 				</p>
 
@@ -189,8 +211,10 @@ export default async function DashboardPage() {
 									const sides = matchSides({
 										teamAId: m.team_a,
 										teamAName: extractName(m.ta),
+										teamAAvatarUrl: extractAvatar(m.ta),
 										teamBId: m.team_b,
 										teamBName: extractName(m.tb),
+										teamBAvatarUrl: extractAvatar(m.tb),
 										scoreA: m.score_a,
 										scoreB: m.score_b,
 										winnerTeamId: null,
@@ -214,8 +238,10 @@ export default async function DashboardPage() {
 									const sides = flightSides({
 										team1Id: f.team_1,
 										team1Name: extractName(f.t1),
+										team1AvatarUrl: extractAvatar(f.t1),
 										team2Id: f.team_2,
 										team2Name: extractName(f.t2),
+										team2AvatarUrl: extractAvatar(f.t2),
 										strokes1: f.strokes_1,
 										strokes2: f.strokes_2,
 										status: f.status,
@@ -252,8 +278,10 @@ export default async function DashboardPage() {
 						const sides = matchSides({
 							teamAId: m.team_a,
 							teamAName: extractName(m.ta),
+							teamAAvatarUrl: extractAvatar(m.ta),
 							teamBId: m.team_b,
 							teamBName: extractName(m.tb),
+							teamBAvatarUrl: extractAvatar(m.tb),
 							scoreA: null,
 							scoreB: null,
 							winnerTeamId: null,
@@ -276,8 +304,10 @@ export default async function DashboardPage() {
 						const sides = flightSides({
 							team1Id: f.team_1,
 							team1Name: extractName(f.t1),
+							team1AvatarUrl: extractAvatar(f.t1),
 							team2Id: f.team_2,
 							team2Name: extractName(f.t2),
+							team2AvatarUrl: extractAvatar(f.t2),
 							strokes1: null,
 							strokes2: null,
 							status: null,
@@ -307,8 +337,10 @@ export default async function DashboardPage() {
 						const sides = matchSides({
 							teamAId: m.team_a,
 							teamAName: extractName(m.ta),
+							teamAAvatarUrl: extractAvatar(m.ta),
 							teamBId: m.team_b,
 							teamBName: extractName(m.tb),
+							teamBAvatarUrl: extractAvatar(m.tb),
 							scoreA: m.score_a,
 							scoreB: m.score_b,
 							winnerTeamId: m.winner_team_id,
@@ -331,8 +363,10 @@ export default async function DashboardPage() {
 						const sides = flightSides({
 							team1Id: f.team_1,
 							team1Name: extractName(f.t1),
+							team1AvatarUrl: extractAvatar(f.t1),
 							team2Id: f.team_2,
 							team2Name: extractName(f.t2),
+							team2AvatarUrl: extractAvatar(f.t2),
 							strokes1: f.strokes_1,
 							strokes2: f.strokes_2,
 							status: f.status,
@@ -353,6 +387,12 @@ export default async function DashboardPage() {
 					})}
 				</Section>
 
+				<TeamAvatarControls
+					team={team}
+					currentUserId={user.id}
+					teammate={teammate}
+					requester={avatarRequester}
+				/>
 				<TeamNameControls
 					team={team}
 					currentUserId={user.id}
@@ -364,6 +404,10 @@ export default async function DashboardPage() {
 	);
 }
 
+type TeamRel =
+	| { name: string; avatar_url: string | null }
+	| { name: string; avatar_url: string | null }[]
+	| null;
 type PendingMatch = {
 	id: string;
 	sport: "padel" | "tennis";
@@ -374,8 +418,8 @@ type PendingMatch = {
 	status: "pending" | "confirmed" | "disputed" | null;
 	submitted_by: string | null;
 	submitted_by_team: string | null;
-	ta: { name: string } | { name: string }[] | null;
-	tb: { name: string } | { name: string }[] | null;
+	ta: TeamRel;
+	tb: TeamRel;
 };
 type PendingFlight = {
 	id: string;
@@ -388,8 +432,8 @@ type PendingFlight = {
 	status: "pending" | "confirmed" | "disputed" | null;
 	submitted_by: string | null;
 	submitted_by_team: string | null;
-	t1: { name: string } | { name: string }[] | null;
-	t2: { name: string } | { name: string }[] | null;
+	t1: TeamRel;
+	t2: TeamRel;
 };
 type RecentMatch = PendingMatch & {
 	winner_team_id: string | null;
@@ -399,12 +443,15 @@ type RecentFlight = PendingFlight & {
 	submitted_at: string | null;
 };
 
-function extractName(
-	rel: { name: string } | { name: string }[] | null,
-): string {
+function extractName(rel: TeamRel): string {
 	if (!rel) return "?";
 	if (Array.isArray(rel)) return rel[0]?.name ?? "?";
 	return rel.name;
+}
+function extractAvatar(rel: TeamRel): string | null {
+	if (!rel) return null;
+	if (Array.isArray(rel)) return rel[0]?.avatar_url ?? null;
+	return rel.avatar_url ?? null;
 }
 
 // Pending result needs MY team to confirm only when the OPPOSING team submitted.
