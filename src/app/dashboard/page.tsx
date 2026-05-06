@@ -2,28 +2,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { TeamNameControls } from "@/app/teams/[id]/team-name-controls";
 import { AppShell } from "@/components/app-shell";
-import { MatchHeadline } from "@/components/match-headline";
+import { flightSides, MatchCard, matchSides } from "@/components/match-card";
+import { TeamPointsBreakdown } from "@/components/team-points-breakdown";
 import { getSessionUser } from "@/lib/auth";
 import type { Profile } from "@/lib/database.types";
-import { SPORTS, sportEmoji, sportLabel } from "@/lib/sports";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Mitt lag · The Grandest Slam" };
 export const revalidate = 0;
-
-const dateFmt = new Intl.DateTimeFormat("nb-NO", {
-	day: "numeric",
-	month: "short",
-	hour: "2-digit",
-	minute: "2-digit",
-});
-
-function formatRegistered(iso: string | null): string | null {
-	if (!iso) return null;
-	const d = new Date(iso);
-	if (Number.isNaN(d.getTime())) return null;
-	return dateFmt.format(d);
-}
 
 function ordinal(n: number): string {
 	return `${n}.`;
@@ -159,21 +145,21 @@ export default async function DashboardPage() {
 							<p className="text-xs font-bold uppercase tracking-widest text-[var(--color-ink)]/60">
 								Plassering
 							</p>
-							<p
+							<div
 								className="mt-1 text-3xl md:text-4xl"
 								style={{ fontFamily: "var(--font-display)" }}
 							>
 								{rank > 0 ? (
 									<>
-										{ordinal(rank)} plass{" "}
-										<span className="text-[var(--color-ink)]/55 text-2xl md:text-3xl">
+										<div>{ordinal(rank)} plass</div>
+										<div className="text-2xl text-[var(--color-ink)]/55 md:text-3xl">
 											av {totalTeams}
-										</span>
+										</div>
 									</>
 								) : (
 									"Ingen plassering enda"
 								)}
-							</p>
+							</div>
 						</div>
 						<div
 							className="grid h-16 min-w-16 place-items-center rounded-xl border-2 border-[var(--color-ink)] bg-[var(--color-mustard)] px-3 text-2xl font-black"
@@ -182,97 +168,76 @@ export default async function DashboardPage() {
 							{totals?.total_points ?? 0}
 						</div>
 					</div>
-					<div className="mt-4 grid grid-cols-4 gap-2">
-						{SPORTS.map((s) => {
-							const pts =
-								s.key === "padel"
-									? (totals?.padel_points ?? 0)
-									: s.key === "tennis"
-										? (totals?.tennis_points ?? 0)
-										: s.key === "disc_golf"
-											? (totals?.disc_golf_points ?? 0)
-											: (totals?.golf_points ?? 0);
-							return (
-								<div
-									key={s.key}
-									className="rounded-xl border-2 border-[var(--color-ink)] bg-[var(--color-cream-50)] p-2 text-center"
-								>
-									<div className="text-xs font-bold opacity-70">
-										{s.emoji} {s.label}
-									</div>
-									<div
-										className="mt-1 text-2xl"
-										style={{ fontFamily: "var(--font-display)" }}
-									>
-										{pts}
-									</div>
-								</div>
-							);
-						})}
-					</div>
+					<TeamPointsBreakdown totals={totals} className="mt-4" />
 				</Link>
 
 				{/* Action: confirm pending */}
 				<Section title="Venter på din bekreftelse">
-					{[
-						...((pendingMatches ?? []) as PendingMatch[])
-							.filter((m) => needsOpponentConfirmation(m, team.id))
-							.map((m) => ({ kind: "match" as const, m })),
-						...((pendingFlights ?? []) as PendingFlight[])
-							.filter((f) => needsOpponentConfirmationFlight(f, team.id))
-							.map((f) => ({ kind: "flight" as const, f })),
-					].length === 0 && <Empty>Du er à jour.</Empty>}
-					{((pendingMatches ?? []) as PendingMatch[])
-						.filter((m) => needsOpponentConfirmation(m, team.id))
-						.map((m) => (
-							<Link
-								key={m.id}
-								href={`/matches/${m.id}`}
-								className="card flex items-center justify-between p-4 hover:translate-y-[-1px] transition-transform"
-							>
-								<div className="min-w-0">
-									<p className="text-xs font-bold uppercase tracking-wider text-[var(--color-ink)]/60">
-										{sportEmoji(m.sport)} {sportLabel(m.sport)}
-									</p>
-									<p className="mt-1 truncate font-extrabold">
-										{extractName(m.ta)} {m.score_a}–{m.score_b}{" "}
-										{extractName(m.tb)}
-									</p>
-									<p className="text-xs text-[var(--color-ink)]/60">
-										Trykk for å bekrefte eller bestride
-									</p>
-								</div>
-								<span className="rounded-full border-2 border-[var(--color-ink)] bg-[var(--color-mustard)] px-3 py-1 text-xs font-black">
-									Bekreft →
-								</span>
-							</Link>
-						))}
-					{((pendingFlights ?? []) as PendingFlight[])
-						.filter((f) => needsOpponentConfirmationFlight(f, team.id))
-						.map((f) => (
-							<Link
-								key={f.id}
-								href={`/matches/flight/${f.id}`}
-								className="card flex items-center justify-between p-4 hover:translate-y-[-1px] transition-transform"
-							>
-								<div className="min-w-0">
-									<p className="text-xs font-bold uppercase tracking-wider text-[var(--color-ink)]/60">
-										{sportEmoji(f.sport)} {sportLabel(f.sport)} · R
-										{f.round_number}
-									</p>
-									<p className="mt-1 truncate font-extrabold">
-										{extractName(f.t1)} {f.strokes_1}–{f.strokes_2}{" "}
-										{extractName(f.t2)}
-									</p>
-									<p className="text-xs text-[var(--color-ink)]/60">
-										Trykk for å bekrefte eller bestride
-									</p>
-								</div>
-								<span className="rounded-full border-2 border-[var(--color-ink)] bg-[var(--color-mustard)] px-3 py-1 text-xs font-black">
-									Bekreft →
-								</span>
-							</Link>
-						))}
+					{(() => {
+						const confirmMatches = (
+							(pendingMatches ?? []) as PendingMatch[]
+						).filter((m) => needsOpponentConfirmation(m, team.id));
+						const confirmFlights = (
+							(pendingFlights ?? []) as PendingFlight[]
+						).filter((f) => needsOpponentConfirmationFlight(f, team.id));
+						if (confirmMatches.length === 0 && confirmFlights.length === 0) {
+							return <Empty>Du er à jour.</Empty>;
+						}
+						return (
+							<>
+								{confirmMatches.map((m) => {
+									const sides = matchSides({
+										teamAId: m.team_a,
+										teamAName: extractName(m.ta),
+										teamBId: m.team_b,
+										teamBName: extractName(m.tb),
+										scoreA: m.score_a,
+										scoreB: m.score_b,
+										winnerTeamId: null,
+										status: m.status,
+										myTeamId: team.id,
+									});
+									return (
+										<MatchCard
+											key={m.id}
+											href={`/matches/${m.id}`}
+											sport={m.sport}
+											status={m.status}
+											teamA={sides.teamA}
+											teamB={sides.teamB}
+											cta={{ label: "Bekreft →", tone: "primary" }}
+											footer="Trykk for å bekrefte eller bestride"
+										/>
+									);
+								})}
+								{confirmFlights.map((f) => {
+									const sides = flightSides({
+										team1Id: f.team_1,
+										team1Name: extractName(f.t1),
+										team2Id: f.team_2,
+										team2Name: extractName(f.t2),
+										strokes1: f.strokes_1,
+										strokes2: f.strokes_2,
+										status: f.status,
+										myTeamId: team.id,
+									});
+									return (
+										<MatchCard
+											key={f.id}
+											href={`/matches/flight/${f.id}`}
+											sport={f.sport}
+											round={f.round_number}
+											status={f.status}
+											teamA={sides.teamA}
+											teamB={sides.teamB}
+											cta={{ label: "Bekreft →", tone: "primary" }}
+											footer="Trykk for å bekrefte eller bestride"
+										/>
+									);
+								})}
+							</>
+						);
+					})()}
 				</Section>
 
 				<Section title="Skal sendes inn">
@@ -283,47 +248,54 @@ export default async function DashboardPage() {
 								turneringen.
 							</Empty>
 						)}
-					{((upcomingMatches ?? []) as PendingMatch[]).map((m) => (
-						<Link
-							key={m.id}
-							href={`/matches/${m.id}`}
-							className="card flex items-center justify-between p-4"
-						>
-							<div className="min-w-0">
-								<p className="text-xs font-bold uppercase tracking-wider text-[var(--color-ink)]/60">
-									{sportEmoji(m.sport)} {sportLabel(m.sport)}
-								</p>
-								<p className="mt-1 truncate font-extrabold">
-									{extractName(m.ta)} <span className="opacity-50">vs</span>{" "}
-									{extractName(m.tb)}
-								</p>
-							</div>
-							<span className="rounded-full border-2 border-[var(--color-ink)] bg-[var(--color-cream-50)] px-3 py-1 text-xs font-black">
-								Send inn →
-							</span>
-						</Link>
-					))}
-					{((upcomingFlights ?? []) as PendingFlight[]).map((f) => (
-						<Link
-							key={f.id}
-							href={`/matches/flight/${f.id}`}
-							className="card flex items-center justify-between p-4"
-						>
-							<div className="min-w-0">
-								<p className="text-xs font-bold uppercase tracking-wider text-[var(--color-ink)]/60">
-									{sportEmoji(f.sport)} {sportLabel(f.sport)} · R
-									{f.round_number}
-								</p>
-								<p className="mt-1 truncate font-extrabold">
-									{extractName(f.t1)} <span className="opacity-50">vs</span>{" "}
-									{extractName(f.t2)}
-								</p>
-							</div>
-							<span className="rounded-full border-2 border-[var(--color-ink)] bg-[var(--color-cream-50)] px-3 py-1 text-xs font-black">
-								Send inn →
-							</span>
-						</Link>
-					))}
+					{((upcomingMatches ?? []) as PendingMatch[]).map((m) => {
+						const sides = matchSides({
+							teamAId: m.team_a,
+							teamAName: extractName(m.ta),
+							teamBId: m.team_b,
+							teamBName: extractName(m.tb),
+							scoreA: null,
+							scoreB: null,
+							winnerTeamId: null,
+							status: null,
+							myTeamId: team.id,
+						});
+						return (
+							<MatchCard
+								key={m.id}
+								href={`/matches/${m.id}`}
+								sport={m.sport}
+								status={null}
+								teamA={sides.teamA}
+								teamB={sides.teamB}
+								cta={{ label: "Send inn →" }}
+							/>
+						);
+					})}
+					{((upcomingFlights ?? []) as PendingFlight[]).map((f) => {
+						const sides = flightSides({
+							team1Id: f.team_1,
+							team1Name: extractName(f.t1),
+							team2Id: f.team_2,
+							team2Name: extractName(f.t2),
+							strokes1: null,
+							strokes2: null,
+							status: null,
+							myTeamId: team.id,
+						});
+						return (
+							<MatchCard
+								key={f.id}
+								href={`/matches/flight/${f.id}`}
+								sport={f.sport}
+								round={f.round_number}
+								status={null}
+								teamA={sides.teamA}
+								teamB={sides.teamB}
+								cta={{ label: "Send inn →" }}
+							/>
+						);
+					})}
 				</Section>
 
 				<Section title="Siste resultater">
@@ -332,76 +304,51 @@ export default async function DashboardPage() {
 							<Empty>Ingen bekreftede resultater enda.</Empty>
 						)}
 					{((recentMatches ?? []) as RecentMatch[]).map((m) => {
-						const won = m.winner_team_id === team.id;
-						const registered = formatRegistered(m.submitted_at);
-						const winnerSide: "a" | "b" | null = m.winner_team_id
-							? m.winner_team_id === m.team_a
-								? "a"
-								: m.winner_team_id === m.team_b
-									? "b"
-									: null
-							: null;
+						const sides = matchSides({
+							teamAId: m.team_a,
+							teamAName: extractName(m.ta),
+							teamBId: m.team_b,
+							teamBName: extractName(m.tb),
+							scoreA: m.score_a,
+							scoreB: m.score_b,
+							winnerTeamId: m.winner_team_id,
+							status: m.status,
+							myTeamId: team.id,
+						});
 						return (
-							<Link
+							<MatchCard
 								key={m.id}
 								href={`/matches/${m.id}`}
-								className="card flex items-center justify-between gap-3 p-3 hover:-translate-y-px transition-transform"
-							>
-								<div className="min-w-0">
-									<p className="text-xs font-bold uppercase tracking-wider text-[var(--color-ink)]/60">
-										{sportEmoji(m.sport)} {sportLabel(m.sport)}
-									</p>
-									<MatchHeadline
-										teamAName={extractName(m.ta)}
-										teamBName={extractName(m.tb)}
-										winnerSide={winnerSide}
-										className="mt-1"
-									/>
-									{registered && (
-										<p className="text-[11px] text-[var(--color-ink)]/55">
-											Registrert {registered}
-										</p>
-									)}
-								</div>
-								<span
-									className={`shrink-0 rounded-full border-2 border-[var(--color-ink)] px-3 py-1 text-xs font-black ${
-										won
-											? "bg-[var(--color-mustard)]"
-											: "bg-[var(--color-cream-50)]"
-									}`}
-								>
-									{m.score_a}–{m.score_b}
-								</span>
-							</Link>
+								sport={m.sport}
+								status={m.status}
+								submittedAt={m.submitted_at}
+								teamA={sides.teamA}
+								teamB={sides.teamB}
+							/>
 						);
 					})}
 					{((recentFlights ?? []) as RecentFlight[]).map((f) => {
-						const registered = formatRegistered(f.submitted_at);
+						const sides = flightSides({
+							team1Id: f.team_1,
+							team1Name: extractName(f.t1),
+							team2Id: f.team_2,
+							team2Name: extractName(f.t2),
+							strokes1: f.strokes_1,
+							strokes2: f.strokes_2,
+							status: f.status,
+							myTeamId: team.id,
+						});
 						return (
-							<Link
+							<MatchCard
 								key={f.id}
 								href={`/matches/flight/${f.id}`}
-								className="card flex items-center justify-between gap-3 p-3 hover:-translate-y-px transition-transform"
-							>
-								<div className="min-w-0">
-									<p className="text-xs font-bold uppercase tracking-wider text-[var(--color-ink)]/60">
-										{sportEmoji(f.sport)} {sportLabel(f.sport)} · R
-										{f.round_number}
-									</p>
-									<p className="mt-1 truncate font-extrabold">
-										{extractName(f.t1)} <span className="opacity-50">vs</span>{" "}
-										{extractName(f.t2)}
-									</p>
-									{registered && (
-										<p className="text-[11px] text-[var(--color-ink)]/55">
-											Registrert {registered}
-										</p>
-									)}
-								</div>
-								<span className="shrink-0 rounded-full border-2 border-[var(--color-ink)] bg-[var(--color-cream-50)] px-3 py-1 text-xs font-black">
-									{f.strokes_1}–{f.strokes_2}
-								</span>
-							</Link>
+								sport={f.sport}
+								round={f.round_number}
+								status={f.status}
+								submittedAt={f.submitted_at}
+								teamA={sides.teamA}
+								teamB={sides.teamB}
+							/>
 						);
 					})}
 				</Section>
@@ -491,7 +438,7 @@ function Section({
 			>
 				{title}
 			</h2>
-			<div className="space-y-2">{children}</div>
+			<div className="space-y-3">{children}</div>
 		</section>
 	);
 }
