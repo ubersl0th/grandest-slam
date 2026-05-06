@@ -5,12 +5,7 @@ import "./globals.css";
 export const metadata: Metadata = {
 	title: "The Grandest Slam",
 	description:
-		"En sommerturnering i fire idretter — Padel, Tennis, Frisbeegolf og Golf. Lag på to, én mester.",
-	icons: {
-		icon: "/The_Grandest_Slam.ico",
-		shortcut: "/The_Grandest_Slam.ico",
-		apple: "/The_Grandest_Slam.png",
-	},
+		"En sommerturnering i fire idretter — Padel, Tennis, Frisbeegolf og Golf. Lag på to, ett vinnerlag.",
 };
 
 export const viewport: Viewport = {
