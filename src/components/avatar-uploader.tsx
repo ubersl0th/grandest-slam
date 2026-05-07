@@ -20,6 +20,103 @@ const OUTPUT_SIZE = 512;
 const WEBP_QUALITY = 0.86;
 const MAX_INPUT_PIXELS = 30_000_000;
 
+async function readJpegOrientation(file: File): Promise<number> {
+	if (!/^image\/jpe?g$/i.test(file.type)) return 1;
+	try {
+		const buf = await file.slice(0, 128 * 1024).arrayBuffer();
+		const view = new DataView(buf);
+		if (view.byteLength < 4 || view.getUint16(0) !== 0xffd8) return 1;
+		let offset = 2;
+		while (offset + 4 < view.byteLength) {
+			const marker = view.getUint16(offset);
+			if ((marker & 0xff00) !== 0xff00) return 1;
+			const size = view.getUint16(offset + 2);
+			if (marker === 0xffe1 && offset + 10 < view.byteLength) {
+				if (view.getUint32(offset + 4) === 0x45786966) {
+					const tiff = offset + 10;
+					const little = view.getUint16(tiff) === 0x4949;
+					const ifdOffset = view.getUint32(tiff + 4, little);
+					const ifd = tiff + ifdOffset;
+					if (ifd + 2 > view.byteLength) return 1;
+					const num = view.getUint16(ifd, little);
+					for (let i = 0; i < num; i++) {
+						const entry = ifd + 2 + i * 12;
+						if (entry + 12 > view.byteLength) break;
+						if (view.getUint16(entry, little) === 0x0112) {
+							return view.getUint16(entry + 8, little) || 1;
+						}
+					}
+					return 1;
+				}
+			}
+			offset += 2 + size;
+		}
+	} catch {
+		return 1;
+	}
+	return 1;
+}
+
+function applyOrientation(
+	ctx: CanvasRenderingContext2D,
+	orientation: number,
+	w: number,
+	h: number,
+) {
+	switch (orientation) {
+		case 2:
+			ctx.transform(-1, 0, 0, 1, w, 0);
+			break;
+		case 3:
+			ctx.transform(-1, 0, 0, -1, w, h);
+			break;
+		case 4:
+			ctx.transform(1, 0, 0, -1, 0, h);
+			break;
+		case 5:
+			ctx.transform(0, 1, 1, 0, 0, 0);
+			break;
+		case 6:
+			ctx.transform(0, 1, -1, 0, h, 0);
+			break;
+		case 7:
+			ctx.transform(0, -1, -1, 0, h, w);
+			break;
+		case 8:
+			ctx.transform(0, -1, 1, 0, 0, w);
+			break;
+		default:
+			break;
+	}
+}
+
+async function normalizeImage(file: File): Promise<string> {
+	const orientation = await readJpegOrientation(file);
+	const bitmap = await createImageBitmap(file, { imageOrientation: "none" });
+	try {
+		const w = bitmap.width;
+		const h = bitmap.height;
+		if (w * h > MAX_INPUT_PIXELS) {
+			throw new Error("Bildet er for stort (over 30 megapiksler).");
+		}
+		const swap = orientation >= 5 && orientation <= 8;
+		const canvas = document.createElement("canvas");
+		canvas.width = swap ? h : w;
+		canvas.height = swap ? w : h;
+		const ctx = canvas.getContext("2d");
+		if (!ctx) throw new Error("Canvas ikke tilgjengelig.");
+		applyOrientation(ctx, orientation, w, h);
+		ctx.drawImage(bitmap, 0, 0);
+		const blob = await new Promise<Blob | null>((resolve) =>
+			canvas.toBlob(resolve, "image/jpeg", 0.95),
+		);
+		if (!blob) throw new Error("Kunne ikke kode bildet.");
+		return URL.createObjectURL(blob);
+	} finally {
+		bitmap.close();
+	}
+}
+
 function makeNonce() {
 	if (
 		typeof crypto !== "undefined" &&
@@ -61,8 +158,15 @@ export function AvatarUploader({
 			setErr("Filen må være et bilde.");
 			return;
 		}
-		const url = URL.createObjectURL(file);
-		setEditing({ src: url, file });
+		setBusy(true);
+		try {
+			const url = await normalizeImage(file);
+			setEditing({ src: url, file });
+		} catch (err) {
+			setErr(err instanceof Error ? err.message : "Kunne ikke lese bildet.");
+		} finally {
+			setBusy(false);
+		}
 	}
 
 	async function onCropConfirm(blob: Blob) {
@@ -406,6 +510,8 @@ function CropModal({ src, onCancel, onConfirm, onError }: CropModalProps) {
 								top: "50%",
 								width: imgEl.naturalWidth,
 								height: imgEl.naturalHeight,
+								maxWidth: "none",
+								maxHeight: "none",
 								transform: `translate(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px)) scale(${scale})`,
 								transformOrigin: "center center",
 								userSelect: "none",
