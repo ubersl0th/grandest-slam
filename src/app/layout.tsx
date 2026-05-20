@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/next";
 import type { Metadata, Viewport } from "next";
 import { AuthHashError } from "@/components/auth-hash-error";
 import "./globals.css";
@@ -34,6 +35,7 @@ export default function RootLayout({
 				/>
 			</head>
 			<body>
+				<Analytics />
 				<AuthHashError />
 				{children}
 			</body>
