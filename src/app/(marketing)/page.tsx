@@ -129,18 +129,18 @@ export default async function LandingPage() {
 					<ol className="grid grid-cols-1 gap-5 md:grid-cols-3">
 						<Step
 							n={1}
-							title="Meld deg på"
-							body="Fyll inn navn, e-post og ferdighetsnivå. Ferdig på 60 sekunder."
+							title="Meld deg på — alene eller som lag"
+							body="Velg «Som enkeltperson» og fyll inn ferdighetsnivå per idrett, eller «Som lag» hvis du allerede har en makker. Tar 60 sekunder."
 						/>
 						<Step
 							n={2}
-							title="Bli paret med en makker"
-							body="Administratorene setter sammen balanserte lag på to og sender deg en magisk lenke."
+							title="Admin godkjenner og inviterer"
+							body="Enkeltpåmeldte pares til balanserte lag på to; ferdige lag slippes inn som de er. Du får en magisk innloggingslenke på e-post."
 						/>
 						<Step
 							n={3}
 							title="Spill. Send inn. Bekreft."
-							body="Send inn poeng fra mobilen. Motstanderne bekrefter med ett trykk. Resultatlisten oppdateres direkte."
+							body="Send poeng fra mobilen. Motstanderne bekrefter med ett trykk, og resultatlisten oppdateres direkte."
 						/>
 					</ol>
 				</div>
