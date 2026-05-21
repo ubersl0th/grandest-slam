@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdminRole } from "@/lib/auth";
 import type { ExperienceLevel, Sport } from "@/lib/database.types";
+import { originFrom, sendMagicLink } from "@/lib/email";
 import { SPORTS } from "@/lib/sports";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 
@@ -71,51 +72,49 @@ export async function POST(
 		);
 	}
 
-	// 3. Invite (or look up) the auth user. Service role is needed only for
-	//    Auth Admin API; SQL writes continue via the admin session.
+	// 3. Create the auth user (or look up an existing one) and generate the
+	//    magic link without letting Supabase send its own email — we send a
+	//    custom Resend email at the end of the flow.
 	const adminAuth = createServiceClient();
-	const origin = new URL(req.url).origin;
+	const origin = originFrom(req);
 	const email = sub.email.toLowerCase();
+	const redirectTo = `${origin}/auth/callback?next=/dashboard`;
 	let userId: string | undefined;
+	let magicUrl: string | undefined;
 
-	const invite = await adminAuth.auth.admin.inviteUserByEmail(email, {
-		data: {
-			first_name: sub.first_name,
-			last_name: sub.last_name,
-			nickname: sub.nickname ?? "",
-			bio: sub.bio ?? "",
+	const invite = await adminAuth.auth.admin.generateLink({
+		type: "invite",
+		email,
+		options: {
+			data: {
+				first_name: sub.first_name,
+				last_name: sub.last_name,
+				nickname: sub.nickname ?? "",
+				bio: sub.bio ?? "",
+			},
+			redirectTo,
 		},
-		redirectTo: `${origin}/auth/callback?next=/dashboard`,
 	});
-	if (invite.error) {
-		const { data: existing, error: listErr } =
-			await adminAuth.auth.admin.listUsers({
-				page: 1,
-				perPage: 200,
-			});
-		if (listErr) {
-			return NextResponse.json(
-				{ error: "auth_lookup", message: listErr.message },
-				{ status: 500 },
-			);
-		}
-		const found = existing?.users.find((u) => u.email?.toLowerCase() === email);
-		if (!found) {
-			return NextResponse.json(
-				{ error: "auth_invite", message: invite.error.message },
-				{ status: 500 },
-			);
-		}
-		userId = found.id;
-		await adminAuth.auth.admin.generateLink({
+	if (!invite.error) {
+		userId = invite.data.user?.id;
+		magicUrl = invite.data.properties?.action_link;
+	} else {
+		// User already exists — issue a plain magic-link instead.
+		const link = await adminAuth.auth.admin.generateLink({
 			type: "magiclink",
 			email,
-			options: { redirectTo: `${origin}/auth/callback?next=/dashboard` },
+			options: { redirectTo },
 		});
-	} else {
-		userId = invite.data.user?.id;
+		if (link.error) {
+			return NextResponse.json(
+				{ error: "auth_invite", message: link.error.message },
+				{ status: 500 },
+			);
+		}
+		userId = link.data.user?.id;
+		magicUrl = link.data.properties?.action_link;
 	}
-	if (!userId) {
+	if (!userId || !magicUrl) {
 		return NextResponse.json(
 			{
 				error: "auth_invite_no_user",
@@ -184,6 +183,14 @@ export async function POST(
 			{ status: 500 },
 		);
 	}
+
+	// 7. Send the custom approval email with the magic link.
+	await sendMagicLink({
+		kind: "approved",
+		to: email,
+		name: sub.first_name,
+		magicUrl,
+	});
 
 	return NextResponse.json({ ok: true, profile_id: userId });
 }

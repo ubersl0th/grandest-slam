@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 
 export function SignInForm({ next }: { next?: string }) {
 	const [email, setEmail] = useState("");
@@ -13,18 +12,20 @@ export function SignInForm({ next }: { next?: string }) {
 		e.preventDefault();
 		setLoading(true);
 		setError(null);
-		const supabase = createClient();
-		const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next ?? "/dashboard")}`;
-		const { error } = await supabase.auth.signInWithOtp({
-			email: email.trim().toLowerCase(),
-			options: { emailRedirectTo: redirectTo, shouldCreateUser: true },
+		const res = await fetch("/api/auth/magic-link", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ email: email.trim().toLowerCase(), next }),
 		});
 		setLoading(false);
-		if (error) {
-			setError(error.message);
-		} else {
-			setSent(true);
+		if (!res.ok) {
+			const data = (await res.json().catch(() => null)) as {
+				message?: string;
+			} | null;
+			setError(data?.message ?? "Noe gikk galt. Prøv igjen om et øyeblikk.");
+			return;
 		}
+		setSent(true);
 	}
 
 	if (sent) {

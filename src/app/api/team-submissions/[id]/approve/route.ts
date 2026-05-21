@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdminRole } from "@/lib/auth";
 import type { ExperienceLevel, Sport } from "@/lib/database.types";
+import { originFrom, sendMagicLink } from "@/lib/email";
 import { SPORTS } from "@/lib/sports";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 
@@ -128,50 +129,51 @@ export async function POST(
 		},
 	];
 
-	// 4. Invite (or look up) both auth users.
+	// 4. Create/look up both auth users and capture the magic link URLs
+	//    without letting Supabase send its own email — we send custom Resend
+	//    emails at the end of the flow.
 	const adminAuth = createServiceClient();
-	const origin = new URL(req.url).origin;
+	const origin = originFrom(req);
+	const redirectTo = `${origin}/auth/callback?next=/dashboard`;
 	const userIds: string[] = [];
+	const magicUrls: string[] = [];
 
 	for (const p of players) {
-		const invite = await adminAuth.auth.admin.inviteUserByEmail(p.email, {
-			data: {
-				first_name: p.first_name,
-				last_name: p.last_name,
-				nickname: p.nickname ?? "",
-				bio: p.bio ?? "",
-			},
-			redirectTo: `${origin}/auth/callback?next=/dashboard`,
-		});
 		let userId: string | undefined;
-		if (invite.error) {
-			const { data: existing, error: listErr } =
-				await adminAuth.auth.admin.listUsers({ page: 1, perPage: 200 });
-			if (listErr) {
-				return NextResponse.json(
-					{ error: "auth_lookup", message: listErr.message },
-					{ status: 500 },
-				);
-			}
-			const found = existing?.users.find(
-				(u) => u.email?.toLowerCase() === p.email,
-			);
-			if (!found) {
-				return NextResponse.json(
-					{ error: "auth_invite", message: invite.error.message },
-					{ status: 500 },
-				);
-			}
-			userId = found.id;
-			await adminAuth.auth.admin.generateLink({
+		let magicUrl: string | undefined;
+
+		const invite = await adminAuth.auth.admin.generateLink({
+			type: "invite",
+			email: p.email,
+			options: {
+				data: {
+					first_name: p.first_name,
+					last_name: p.last_name,
+					nickname: p.nickname ?? "",
+					bio: p.bio ?? "",
+				},
+				redirectTo,
+			},
+		});
+		if (!invite.error) {
+			userId = invite.data.user?.id;
+			magicUrl = invite.data.properties?.action_link;
+		} else {
+			const link = await adminAuth.auth.admin.generateLink({
 				type: "magiclink",
 				email: p.email,
-				options: { redirectTo: `${origin}/auth/callback?next=/dashboard` },
+				options: { redirectTo },
 			});
-		} else {
-			userId = invite.data.user?.id;
+			if (link.error) {
+				return NextResponse.json(
+					{ error: "auth_invite", message: link.error.message },
+					{ status: 500 },
+				);
+			}
+			userId = link.data.user?.id;
+			magicUrl = link.data.properties?.action_link;
 		}
-		if (!userId) {
+		if (!userId || !magicUrl) {
 			return NextResponse.json(
 				{
 					error: "auth_invite_no_user",
@@ -181,6 +183,7 @@ export async function POST(
 			);
 		}
 		userIds.push(userId);
+		magicUrls.push(magicUrl);
 	}
 
 	// 5. Refresh profile fields (the trigger may have already created them
@@ -292,6 +295,25 @@ export async function POST(
 			{ status: 500 },
 		);
 	}
+
+	// 10. Send the custom approval emails — each player gets their own magic link.
+	const fullNames = players.map((p) => `${p.first_name} ${p.last_name}`.trim());
+	await sendMagicLink({
+		kind: "approved-team",
+		to: players[0].email,
+		name: players[0].first_name,
+		magicUrl: magicUrls[0],
+		teamName: sub.team_name,
+		partnerName: fullNames[1],
+	});
+	await sendMagicLink({
+		kind: "approved-team",
+		to: players[1].email,
+		name: players[1].first_name,
+		magicUrl: magicUrls[1],
+		teamName: sub.team_name,
+		partnerName: fullNames[0],
+	});
 
 	return NextResponse.json({ ok: true, team_id: teamRow.id });
 }

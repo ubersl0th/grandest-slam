@@ -2,78 +2,93 @@
 // Install:  npm i resend @react-email/components
 //           (and @react-email/render if you want to pre-render to a string)
 
-import { Resend } from 'resend';
-import * as React from 'react';
-import { readFileSync } from 'node:fs';
-import { MagicLinkEmail, subjectFor, type MagicLinkKind } from './MagicLinkEmail';
-import { AdminNotifyEmail, adminSubjectFor, type AdminNotifyKind } from './AdminNotifyEmail';
+import { readFileSync } from "node:fs";
+import * as React from "react";
+import { Resend } from "resend";
 import {
-  SubmissionStatusEmail, statusSubjectFor, type SubmissionStatusKind,
-} from './SubmissionStatusEmail';
+	AdminNotifyEmail,
+	type AdminNotifyKind,
+	adminSubjectFor,
+} from "./AdminNotifyEmail";
+import {
+	MagicLinkEmail,
+	type MagicLinkKind,
+	subjectFor,
+} from "./MagicLinkEmail";
+import {
+	SubmissionStatusEmail,
+	type SubmissionStatusKind,
+	statusSubjectFor,
+} from "./SubmissionStatusEmail";
 
 const resend = new Resend(process.env.RESEND_API_KEY!);
-const FROM = 'The Grandest Slam <noreply@thegrandestslam.no>';
-const ADMIN_RECIPIENTS = (process.env.ADMIN_EMAILS ?? '').split(',').map(s => s.trim()).filter(Boolean);
+const FROM = "The Grandest Slam <noreply@thegrandestslam.no>";
+const ADMIN_RECIPIENTS = (process.env.ADMIN_EMAILS ?? "")
+	.split(",")
+	.map((s) => s.trim())
+	.filter(Boolean);
 
 // ───────────────────────────────────────────────────────────────────────────
 // Flavor 1 — React Email component (recommended)
 // ───────────────────────────────────────────────────────────────────────────
 
 export async function sendMagicLinkReact(opts: {
-  kind: MagicLinkKind;
-  to: string;
-  name: string;
-  magicUrl: string;
-  teamName?: string;
-  partnerName?: string;
-  partnerSkill?: string;
+	kind: MagicLinkKind;
+	to: string;
+	name: string;
+	magicUrl: string;
+	teamName?: string;
+	partnerName?: string;
+	partnerSkill?: string;
 }) {
-  return resend.emails.send({
-    from: FROM,
-    to: opts.to,
-    subject: subjectFor(opts.kind),
-    react: (
-      <MagicLinkEmail
-        kind={opts.kind}
-        name={opts.name}
-        magicUrl={opts.magicUrl}
-        teamName={opts.teamName}
-        partnerName={opts.partnerName}
-        partnerSkill={opts.partnerSkill}
-      />
-    ),
-  });
+	return resend.emails.send({
+		from: FROM,
+		to: opts.to,
+		subject: subjectFor(opts.kind),
+		react: (
+			<MagicLinkEmail
+				kind={opts.kind}
+				name={opts.name}
+				magicUrl={opts.magicUrl}
+				teamName={opts.teamName}
+				partnerName={opts.partnerName}
+				partnerSkill={opts.partnerSkill}
+			/>
+		),
+	});
 }
 
 // ───────────────────────────────────────────────────────────────────────────
 // Flavor 2 — Plain HTML template with token replacement
 // ───────────────────────────────────────────────────────────────────────────
 
-const TEMPLATE = readFileSync(new URL('./magic-link.html', import.meta.url), 'utf8');
+const TEMPLATE = readFileSync(
+	new URL("./magic-link.html", import.meta.url),
+	"utf8",
+);
 
 export async function sendMagicLinkHtml(opts: {
-  kind: MagicLinkKind;
-  to: string;
-  name: string;
-  magicUrl: string;
-  teamName?: string;
-  partnerName?: string;
-  partnerSkill?: string;
+	kind: MagicLinkKind;
+	to: string;
+	name: string;
+	magicUrl: string;
+	teamName?: string;
+	partnerName?: string;
+	partnerSkill?: string;
 }) {
-  const html = TEMPLATE
-    .replaceAll('{{kind}}',          opts.kind)
-    .replaceAll('{{name}}',          opts.name)
-    .replaceAll('{{magic_url}}',     opts.magicUrl)
-    .replaceAll('{{team_name}}',     opts.teamName ?? '')
-    .replaceAll('{{partner_name}}',  opts.partnerName ?? '')
-    .replaceAll('{{partner_skill}}', opts.partnerSkill ?? '');
+	const html = TEMPLATE.replaceAll("{{kind}}", opts.kind)
+		.replaceAll("{{name}}", opts.name)
+		.replaceAll("{{magic_url}}", opts.magicUrl)
+		.replaceAll("{{team_name}}", opts.teamName ?? "")
+		.replaceAll("{{partner_name}}", opts.partnerName ?? "")
+		.replaceAll("{{partner_skill}}", opts.partnerSkill ?? "");
 
-  return resend.emails.send({
-    from: FROM,
-    to: opts.to,
-    subject: subjectFor(opts.kind),
-    html,
-  });
+	return resend.emails.send({
+		from: FROM,
+		to: opts.to,
+		subject: subjectFor(opts.kind),
+		html,
+	});
 }
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -103,23 +118,23 @@ export async function sendMagicLinkHtml(opts: {
 // ───────────────────────────────────────────────────────────────────────────
 
 export async function sendAdminNotify(payload: {
-  kind: AdminNotifyKind;
-  name: string;
-  email: string;
-  skill: string;
-  signedUpAt: string;
-  adminUrl: string;
-  teamName?: string;
-  partnerName?: string;
-  partnerEmail?: string;
-  partnerSkill?: string;
+	kind: AdminNotifyKind;
+	name: string;
+	email: string;
+	skill: string;
+	signedUpAt: string;
+	adminUrl: string;
+	teamName?: string;
+	partnerName?: string;
+	partnerEmail?: string;
+	partnerSkill?: string;
 }) {
-  return resend.emails.send({
-    from: FROM,
-    to: ADMIN_RECIPIENTS,
-    subject: adminSubjectFor(payload),
-    react: <AdminNotifyEmail {...payload} />,
-  });
+	return resend.emails.send({
+		from: FROM,
+		to: ADMIN_RECIPIENTS,
+		subject: adminSubjectFor(payload),
+		react: <AdminNotifyEmail {...payload} />,
+	});
 }
 
 // Solo signup:
@@ -145,63 +160,69 @@ export async function sendAdminNotify(payload: {
 // ───────────────────────────────────────────────────────────────────────────
 
 export async function sendSubmissionStatus(opts: {
-  kind: SubmissionStatusKind;
-  to: string;
-  name: string;
-  teamName?: string;
-  partnerName?: string;
-  reason?: string | null;
+	kind: SubmissionStatusKind;
+	to: string;
+	name: string;
+	teamName?: string;
+	partnerName?: string;
+	reason?: string | null;
 }) {
-  return resend.emails.send({
-    from: FROM,
-    to: opts.to,
-    subject: statusSubjectFor(opts.kind, { teamName: opts.teamName }),
-    react: (
-      <SubmissionStatusEmail
-        kind={opts.kind}
-        name={opts.name}
-        teamName={opts.teamName}
-        partnerName={opts.partnerName}
-        reason={opts.reason}
-      />
-    ),
-  });
+	return resend.emails.send({
+		from: FROM,
+		to: opts.to,
+		subject: statusSubjectFor(opts.kind, { teamName: opts.teamName }),
+		react: (
+			<SubmissionStatusEmail
+				kind={opts.kind}
+				name={opts.name}
+				teamName={opts.teamName}
+				partnerName={opts.partnerName}
+				reason={opts.reason}
+			/>
+		),
+	});
 }
 
 // Plain-HTML flavor for the submission-status template. Handles stripping the optional
 // reason block when no reason is provided.
-const STATUS_TEMPLATE = readFileSync(new URL('./submission-status.html', import.meta.url), 'utf8');
+const STATUS_TEMPLATE = readFileSync(
+	new URL("./submission-status.html", import.meta.url),
+	"utf8",
+);
 
 export async function sendSubmissionStatusHtml(opts: {
-  kind: SubmissionStatusKind;
-  to: string;
-  name: string;
-  teamName?: string;
-  partnerName?: string;
-  reason?: string | null;
+	kind: SubmissionStatusKind;
+	to: string;
+	name: string;
+	teamName?: string;
+	partnerName?: string;
+	reason?: string | null;
 }) {
-  const hasReason = opts.reason != null && opts.reason.trim().length > 0;
-  let html = STATUS_TEMPLATE;
+	const hasReason = opts.reason != null && opts.reason.trim().length > 0;
+	let html = STATUS_TEMPLATE;
 
-  // Strip the optional reason block when empty; otherwise substitute it in.
-  if (hasReason) {
-    html = html.replaceAll('{{reason}}', opts.reason!.trim());
-  } else {
-    html = html.replace(/<!-- REASON_START -->[\s\S]*?<!-- REASON_END -->/g, '');
-  }
+	// Strip the optional reason block when empty; otherwise substitute it in.
+	if (hasReason) {
+		html = html.replaceAll("{{reason}}", opts.reason!.trim());
+	} else {
+		html = html.replace(
+			/<!-- REASON_START -->[\s\S]*?<!-- REASON_END -->/g,
+			"",
+		);
+	}
 
-  html = html
-    .replaceAll('{{kind}}',         opts.kind)
-    .replaceAll('{{name}}',         opts.name)
-    .replaceAll('{{team_name}}',    opts.teamName ?? '')
-    .replaceAll('{{partner_name}}', opts.partnerName ?? '');
+	html = html
+		.replaceAll("{{kind}}", opts.kind)
+		.replaceAll("{{name}}", opts.name)
+		.replaceAll("{{team_name}}", opts.teamName ?? "")
+		.replaceAll("{{partner_name}}", opts.partnerName ?? "");
 
-  return resend.emails.send({
-    from: FROM,
-    to: opts.to,
-    subject: statusSubjectFor(opts.kind, { teamName: opts.teamName }),
-    html,
-  });
+	return resend.emails.send({
+		from: FROM,
+		to: opts.to,
+		subject: statusSubjectFor(opts.kind, { teamName: opts.teamName }),
+		html,
+	});
 }
 
 // Solo signup just hit the waitlist:

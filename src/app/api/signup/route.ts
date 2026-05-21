@@ -1,4 +1,11 @@
 import { NextResponse } from "next/server";
+import {
+	formatSignedUpAt,
+	formatSkillSummary,
+	originFrom,
+	sendAdminNotify,
+	sendSubmissionStatus,
+} from "@/lib/email";
 import { createClient } from "@/lib/supabase/server";
 import { playerSubmissionSchema } from "@/lib/validation";
 
@@ -42,6 +49,21 @@ export async function POST(req: Request) {
 			{ status: 500 },
 		);
 	}
+
+	const origin = originFrom(req);
+	await sendSubmissionStatus({
+		kind: "received-solo",
+		to: data.email,
+		name: data.first_name,
+	});
+	await sendAdminNotify({
+		kind: "solo",
+		name: `${data.first_name} ${data.last_name}`.trim(),
+		email: data.email,
+		skill: formatSkillSummary(data.experience),
+		signedUpAt: formatSignedUpAt(),
+		adminUrl: `${origin}/admin`,
+	});
 
 	return NextResponse.json({ ok: true });
 }

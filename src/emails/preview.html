@@ -85,7 +85,7 @@
     // For rejected variants without a reason, strip the REASON_START/END block.
     // Here we always show it in the preview to demonstrate, but the production sender
     // should strip it when reason is empty.
-    let html = src
+    const html = src
       .replaceAll('{{name}}', FAKE.name)
       .replaceAll('{{email}}', FAKE.email)
       .replaceAll('{{skill}}', FAKE.skill)
