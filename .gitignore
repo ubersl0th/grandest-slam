@@ -8,5 +8,6 @@ out
 .vercel
 .turbo
 next-env.d.ts.bak
+tsconfig.tsbuildinfo
 supabase/.branches
 supabase/.temp
