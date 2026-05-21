@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<title>Magic-link email — preview</title>
+<style>
+  body { margin: 0; background: #ddd; font-family: system-ui, sans-serif; }
+  .toolbar {
+    position: sticky; top: 0; z-index: 10;
+    background: #1a1410; color: #fbf6e8; padding: 12px 20px;
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    border-bottom: 2px solid #1a1410;
+  }
+  .toolbar strong { font-size: 14px; letter-spacing: 0.04em; text-transform: uppercase; margin-right: 4px; }
+  .toolbar .group-label {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: rgba(251,246,232,0.55); margin: 0 6px 0 12px;
+  }
+  .toolbar .group-label:first-of-type { margin-left: 0; }
+  .toolbar button {
+    padding: 8px 14px; border-radius: 9999px; border: 2px solid #fbf6e8;
+    background: transparent; color: #fbf6e8; font-weight: 700; font-size: 13px; cursor: pointer;
+  }
+  .toolbar button.active { background: #d2502d; border-color: #1a1410; }
+  .toolbar button.admin { border-color: #e8a838; }
+  .toolbar button.admin.active { background: #e8a838; color: #1a1410; border-color: #1a1410; }
+  .frame {
+    width: 100%; height: calc(100vh - 53px); border: 0; display: block;
+    background: #f7ecd2;
+  }
+</style>
+</head>
+<body>
+<div class="toolbar">
+  <strong>Emails</strong>
+  <span class="group-label">Submission status</span>
+  <button data-template="submission-status" data-kind="received-solo" class="active">Received (solo)</button>
+  <button data-template="submission-status" data-kind="received-team">Received (team)</button>
+  <button data-template="submission-status" data-kind="rejected-solo">Rejected (solo)</button>
+  <button data-template="submission-status" data-kind="rejected-team">Rejected (team)</button>
+  <span class="group-label">Magic link</span>
+  <button data-template="magic-link" data-kind="signin">Sign-in</button>
+  <button data-template="magic-link" data-kind="approved">Approved (solo)</button>
+  <button data-template="magic-link" data-kind="approved-team">Approved (team)</button>
+  <button data-template="magic-link" data-kind="team-assigned">Team assigned</button>
+  <span class="group-label">To admins</span>
+  <button data-template="admin-notify" data-kind="solo" class="admin">New solo signup</button>
+  <button data-template="admin-notify" data-kind="team" class="admin">New team signup</button>
+</div>
+<iframe id="frame" class="frame"></iframe>
+
+<script>
+  const FAKE = {
+    name: 'Ola Nordmann',
+    email: 'ola.nordmann@example.no',
+    skill: 'Avansert',
+    magic_url: 'https://www.thegrandestslam.no/auth/m/abcd1234efgh5678',
+    team_name: 'Slagferdig',
+    partner_name: 'Kari Hansen',
+    partner_email: 'kari.hansen@example.no',
+    partner_skill: 'Mellomnivå',
+    signed_up_at: '21. mai 2026 · 14:32',
+    admin_url: 'https://www.thegrandestslam.no/admin/signups/sg_9f3a2b',
+    reason: 'Vi har dessverre fullt opp på din erfaringsklasse i år, og vi prøver å holde det balansert. Hvis du melder deg på igjen tidlig neste år har du gode sjanser.',
+  };
+  const MAGIC_KIND_MAP = {
+    'signin': 'signin',
+    'approved': 'approved',
+    'approved-team': 'approved-team',
+    'team-assigned': 'team',
+  };
+
+  const templates = {};
+
+  async function loadTemplate(name) {
+    if (templates[name]) return templates[name];
+    const r = await fetch(name + '.html');
+    templates[name] = await r.text();
+    return templates[name];
+  }
+
+  async function render(template, kind) {
+    const src = await loadTemplate(template);
+    const kindValue = template === 'magic-link' ? MAGIC_KIND_MAP[kind] : kind;
+    // For rejected variants without a reason, strip the REASON_START/END block.
+    // Here we always show it in the preview to demonstrate, but the production sender
+    // should strip it when reason is empty.
+    let html = src
+      .replaceAll('{{name}}', FAKE.name)
+      .replaceAll('{{email}}', FAKE.email)
+      .replaceAll('{{skill}}', FAKE.skill)
+      .replaceAll('{{magic_url}}', FAKE.magic_url)
+      .replaceAll('{{team_name}}', FAKE.team_name)
+      .replaceAll('{{partner_name}}', FAKE.partner_name)
+      .replaceAll('{{partner_email}}', FAKE.partner_email)
+      .replaceAll('{{partner_skill}}', FAKE.partner_skill)
+      .replaceAll('{{signed_up_at}}', FAKE.signed_up_at)
+      .replaceAll('{{admin_url}}', FAKE.admin_url)
+      .replaceAll('{{reason}}', FAKE.reason)
+      .replaceAll('{{kind}}', kindValue);
+    document.getElementById('frame').srcdoc = html;
+  }
+
+  document.querySelectorAll('.toolbar button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.toolbar button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      render(btn.dataset.template, btn.dataset.kind);
+    });
+  });
+
+  render('submission-status', 'received-solo');
+</script>
+</body>
+</html>
