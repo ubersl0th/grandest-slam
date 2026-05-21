@@ -1,4 +1,11 @@
 import { NextResponse } from "next/server";
+import {
+	formatSignedUpAt,
+	formatSkillSummary,
+	originFrom,
+	sendAdminNotify,
+	sendSubmissionStatus,
+} from "@/lib/email";
 import { createClient } from "@/lib/supabase/server";
 import { teamSubmissionSchema } from "@/lib/validation";
 
@@ -61,6 +68,40 @@ export async function POST(req: Request) {
 			{ status: 500 },
 		);
 	}
+
+	const p1Full =
+		`${data.player_1.first_name} ${data.player_1.last_name}`.trim();
+	const p2Full =
+		`${data.player_2.first_name} ${data.player_2.last_name}`.trim();
+
+	await sendSubmissionStatus({
+		kind: "received-team",
+		to: data.player_1.email,
+		name: data.player_1.first_name,
+		teamName: data.team_name,
+		partnerName: p2Full,
+	});
+	await sendSubmissionStatus({
+		kind: "received-team",
+		to: data.player_2.email,
+		name: data.player_2.first_name,
+		teamName: data.team_name,
+		partnerName: p1Full,
+	});
+
+	const origin = originFrom(req);
+	await sendAdminNotify({
+		kind: "team",
+		teamName: data.team_name,
+		name: p1Full,
+		email: data.player_1.email,
+		skill: formatSkillSummary(data.player_1.experience),
+		partnerName: p2Full,
+		partnerEmail: data.player_2.email,
+		partnerSkill: formatSkillSummary(data.player_2.experience),
+		signedUpAt: formatSignedUpAt(),
+		adminUrl: `${origin}/admin`,
+	});
 
 	return NextResponse.json({ ok: true });
 }
